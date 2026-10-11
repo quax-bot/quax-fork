@@ -3,11 +3,17 @@ description: >
   Generates the icons drawn from assets/icon.svg, which git does not track: the launcher icons, and
   the monochrome one that the app also shows. The repository must be checked out first.
 
+inputs:
+  working-directory:
+    description: Where the repository is checked out
+    default: .
+
 runs:
   using: composite
   steps:
     - name: Generate icons
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         python -mvenv .venv
         source ./.venv/bin/activate

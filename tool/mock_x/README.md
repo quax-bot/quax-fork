@@ -26,3 +26,20 @@ from X's public servers, so the device needs internet.
 
 `test/client/mock_x_test.dart` fails when the app's requests stop matching the
 fixtures.
+
+## On CI
+
+The `emulator` workflow (`.github/workflows/emulator.yml`) builds a profile
+APK, starts the server, then `emulator_qa.sh` runs each Maestro flow of
+`.maestro/` on an Android emulator, recording one video per flow. It fails
+when a flow fails or the server answered nothing, warns about unanswered
+requests, and uploads the videos, Maestro's screenshots, the logcat and the
+server log.
+
+Its `app_ref` input builds the app from another ref while keeping the flows
+of the current one, to record the behaviour before a fix. That ref must
+already serve the profile build over plain HTTP
+(`android/app/src/profile/AndroidManifest.xml`).
+
+The APK, Gradle, a booted emulator and Maestro are cached: a run where only
+the flows changed skips the build and boots from a snapshot.
