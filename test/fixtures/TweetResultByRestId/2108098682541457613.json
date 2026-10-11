@@ -1,0 +1,555 @@
+{
+ "scenario": "TEMPORARY fixture recorded by quax-x-recorder for a demo: never merge it upstream",
+ "sourceUrl": "https://x.com/cgtvoff/status/2108098682541457613",
+ "unstable": true,
+ "operation": "TweetResultByRestId",
+ "host": "x.com",
+ "queryId": "xZfFqfOmKQu_OXekGI59mg",
+ "features": {
+  "creator_subscriptions_tweet_preview_api_enabled": true,
+  "premium_content_api_read_enabled": false,
+  "communities_web_enable_tweet_community_results_fetch": true,
+  "c9s_tweet_anatomy_moderator_badge_enabled": true,
+  "responsive_web_grok_analyze_button_fetch_trends_enabled": false,
+  "responsive_web_grok_analyze_post_followups_enabled": true,
+  "rweb_cashtags_composer_attachment_enabled": true,
+  "responsive_web_jetfuel_frame": true,
+  "rweb_sports_post_context_enabled": true,
+  "responsive_web_grok_share_attachment_enabled": true,
+  "responsive_web_grok_annotations_enabled": true,
+  "articles_preview_enabled": true,
+  "responsive_web_edit_tweet_api_enabled": true,
+  "rweb_conversational_replies_downvote_enabled": false,
+  "graphql_is_translatable_rweb_tweet_is_translatable_enabled": true,
+  "view_counts_everywhere_api_enabled": true,
+  "longform_notetweets_consumption_enabled": true,
+  "responsive_web_twitter_article_tweet_consumption_enabled": true,
+  "content_disclosure_indicator_enabled": true,
+  "content_disclosure_ai_generated_indicator_enabled": true,
+  "responsive_web_grok_show_grok_translated_post": true,
+  "responsive_web_grok_analysis_button_from_backend": true,
+  "post_ctas_fetch_enabled": false,
+  "rweb_cashtags_enabled": true,
+  "freedom_of_speech_not_reach_fetch_enabled": true,
+  "standardized_nudges_misinfo": true,
+  "tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled": true,
+  "longform_notetweets_rich_text_read_enabled": true,
+  "longform_notetweets_inline_media_enabled": false,
+  "profile_label_improvements_pcf_label_in_post_enabled": true,
+  "responsive_web_profile_redirect_enabled": true,
+  "rweb_tipjar_consumption_enabled": false,
+  "verified_phone_label_enabled": false,
+  "responsive_web_nested_quote_preview_enabled": true,
+  "responsive_web_grok_image_annotation_enabled": true,
+  "responsive_web_grok_imagine_annotation_enabled": true,
+  "responsive_web_grok_community_note_auto_translation_is_enabled": true,
+  "responsive_web_graphql_timeline_navigation_enabled": true
+ },
+ "fieldToggles": {
+  "withArticleRichContentState": true,
+  "withArticlePlainText": false,
+  "withArticleSummaryText": true,
+  "withArticleVoiceOver": true,
+  "withPayments": false
+ },
+ "variables": {
+  "tweetId": "2108098682541457613",
+  "includePromotedContent": true,
+  "withBirdwatchNotes": true,
+  "withVoice": true,
+  "withCommunity": true
+ },
+ "status": 200,
+ "headers": {
+  "x-rate-limit-limit": "500",
+  "content-type": "application/json",
+  "x-rate-limit-remaining": "499",
+  "x-rate-limit-reset": "1791756582"
+ },
+ "body": {
+  "data": {
+   "tweetResult": {
+    "result": {
+     "__typename": "Tweet",
+     "card": {
+      "legacy": {
+       "binding_values": [
+        {
+         "key": "choice1_label",
+         "value": {
+          "string_value": "Louise",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice2_image",
+         "value": {
+          "image_value": {
+           "height": 280,
+           "url": "https://pbs.twimg.com/card_img/2108098603331788800/YcRCfvdv?format=jpg&name=280x280_2",
+           "width": 280
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "choice_count",
+         "value": {
+          "string_value": "2",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice2_label",
+         "value": {
+          "string_value": "Elwan",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice2_image_original",
+         "value": {
+          "image_value": {
+           "height": 447,
+           "url": "https://pbs.twimg.com/card_img/2108098603331788800/YcRCfvdv?format=jpg&name=orig",
+           "width": 447
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "end_datetime_utc",
+         "value": {
+          "string_value": "2026-10-11T07:34:26Z",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "counts_are_final",
+         "value": {
+          "boolean_value": true,
+          "type": "BOOLEAN"
+         }
+        },
+        {
+         "key": "choice1_image_large",
+         "value": {
+          "image_value": {
+           "height": 420,
+           "url": "https://pbs.twimg.com/card_img/2108098596885159936/b5Ra640z?format=jpg&name=420x420_2",
+           "width": 420
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "choice2_count",
+         "value": {
+          "string_value": "4010",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice2_image_small",
+         "value": {
+          "image_value": {
+           "height": 100,
+           "url": "https://pbs.twimg.com/card_img/2108098603331788800/YcRCfvdv?format=jpg&name=100x100_2",
+           "width": 100
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "choice1_count",
+         "value": {
+          "string_value": "6743",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice1_image",
+         "value": {
+          "image_value": {
+           "height": 280,
+           "url": "https://pbs.twimg.com/card_img/2108098596885159936/b5Ra640z?format=jpg&name=280x280_2",
+           "width": 280
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "last_updated_datetime_utc",
+         "value": {
+          "string_value": "2026-10-11T07:34:27Z",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "duration_minutes",
+         "value": {
+          "string_value": "4320",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice3_count",
+         "value": {
+          "string_value": "0",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice4_count",
+         "value": {
+          "string_value": "0",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice1_image_x_large",
+         "value": {
+          "image_value": {
+           "height": 468,
+           "url": "https://pbs.twimg.com/card_img/2108098596885159936/b5Ra640z?format=png&name=2048x2048_2_exp",
+           "width": 680
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "api",
+         "value": {
+          "string_value": "capi://passthrough/1",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice2_image_x_large",
+         "value": {
+          "image_value": {
+           "height": 447,
+           "url": "https://pbs.twimg.com/card_img/2108098603331788800/YcRCfvdv?format=png&name=2048x2048_2_exp",
+           "width": 447
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "choice1_image_original",
+         "value": {
+          "image_value": {
+           "height": 468,
+           "url": "https://pbs.twimg.com/card_img/2108098596885159936/b5Ra640z?format=jpg&name=orig",
+           "width": 680
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "choice1_image_color",
+         "value": {
+          "image_color_value": {
+           "palette": [
+            {
+             "percentage": 31.63,
+             "rgb": {
+              "blue": 37,
+              "green": 30,
+              "red": 47
+             }
+            },
+            {
+             "percentage": 21.14,
+             "rgb": {
+              "blue": 39,
+              "green": 30,
+              "red": 80
+             }
+            },
+            {
+             "percentage": 16.26,
+             "rgb": {
+              "blue": 234,
+              "green": 69,
+              "red": 45
+             }
+            },
+            {
+             "percentage": 7.19,
+             "rgb": {
+              "blue": 236,
+              "green": 122,
+              "red": 117
+             }
+            },
+            {
+             "percentage": 4.55,
+             "rgb": {
+              "blue": 50,
+              "green": 24,
+              "red": 24
+             }
+            }
+           ]
+          },
+          "type": "IMAGE_COLOR"
+         }
+        },
+        {
+         "key": "choice2_image_color",
+         "value": {
+          "image_color_value": {
+           "palette": [
+            {
+             "percentage": 35.57,
+             "rgb": {
+              "blue": 31,
+              "green": 20,
+              "red": 28
+             }
+            },
+            {
+             "percentage": 21.13,
+             "rgb": {
+              "blue": 110,
+              "green": 126,
+              "red": 195
+             }
+            },
+            {
+             "percentage": 15.87,
+             "rgb": {
+              "blue": 40,
+              "green": 90,
+              "red": 190
+             }
+            },
+            {
+             "percentage": 11.44,
+             "rgb": {
+              "blue": 213,
+              "green": 211,
+              "red": 231
+             }
+            },
+            {
+             "percentage": 8.8,
+             "rgb": {
+              "blue": 31,
+              "green": 44,
+              "red": 89
+             }
+            }
+           ]
+          },
+          "type": "IMAGE_COLOR"
+         }
+        },
+        {
+         "key": "choice2_image_large",
+         "value": {
+          "image_value": {
+           "height": 420,
+           "url": "https://pbs.twimg.com/card_img/2108098603331788800/YcRCfvdv?format=jpg&name=420x420_2",
+           "width": 420
+          },
+          "type": "IMAGE"
+         }
+        },
+        {
+         "key": "card_url",
+         "value": {
+          "scribe_key": "card_url",
+          "string_value": "https://twitter.com",
+          "type": "STRING"
+         }
+        },
+        {
+         "key": "choice1_image_small",
+         "value": {
+          "image_value": {
+           "height": 100,
+           "url": "https://pbs.twimg.com/card_img/2108098596885159936/b5Ra640z?format=jpg&name=100x100_2",
+           "width": 100
+          },
+          "type": "IMAGE"
+         }
+        }
+       ],
+       "card_platform": {
+        "platform": {
+         "audience": {
+          "name": "production"
+         },
+         "device": {
+          "name": "Swift",
+          "version": "12"
+         }
+        }
+       },
+       "name": "1906814671912599552:poll_choice_images",
+       "url": "card://2108098680544731136",
+       "user_refs_results": []
+      },
+      "rest_id": "card://2108098680544731136"
+     },
+     "cashtag_attachments": [],
+     "core": {
+      "user_results": {
+       "result": {
+        "__typename": "User",
+        "action_counts": {
+         "favorites_count": 1852
+        },
+        "affiliates_highlighted_label": {},
+        "avatar": {
+         "image_url": "https://pbs.twimg.com/profile_images/2091863377488621568/P3gOm2G5_normal.jpg"
+        },
+        "banner": {
+         "image_url": "https://pbs.twimg.com/profile_banners/1679072882352168960/1764587190"
+        },
+        "core": {
+         "created_at": "Wed Jul 12 10:19:10 +0000 2023",
+         "name": "Clément Garin",
+         "screen_name": "cgtvoff"
+        },
+        "follow_request_sent": false,
+        "has_graduated_access": true,
+        "id": "VXNlcjoxNjc5MDcyODgyMzUyMTY4OTYw",
+        "is_blue_verified": true,
+        "location": {
+         "location": ""
+        },
+        "media_permissions": {
+         "can_media_tag": false
+        },
+        "notifications_settings": {
+         "notifications_enabled": false
+        },
+        "parody_commentary_fan_label": "None",
+        "pinned_items": {
+         "tweet_ids_str": [
+          "2105681212937326832"
+         ]
+        },
+        "possibly_sensitive": false,
+        "privacy": {
+         "protected": false
+        },
+        "professional": {
+         "category": [
+          {
+           "icon_name": "IconBriefcaseStroke",
+           "id": 15,
+           "name": "Entertainment & Recreation"
+          }
+         ],
+         "professional_type": "Creator",
+         "rest_id": "1938602247425822912"
+        },
+        "profile_bio": {
+         "description": "#CGTV vous raconte ce qu’on ne vous raconte pas. Pour nous lire 👉🏻 https://t.co/pHibTU3G9D",
+         "entities": {
+          "description": {
+           "urls": [
+            {
+             "display_url": "cg-tv.com",
+             "expanded_url": "http://cg-tv.com",
+             "indices": [
+              67,
+              90
+             ],
+             "url": "https://t.co/pHibTU3G9D"
+            }
+           ]
+          }
+         }
+        },
+        "profile_description_language": "fr",
+        "profile_image_shape": "Circle",
+        "profile_metadata": {
+         "profile_interstitial_type": ""
+        },
+        "profile_translation": {
+         "translator_type": "none"
+        },
+        "relationship_counts": {
+         "followers": 89803,
+         "following": 103
+        },
+        "relationship_perspectives": {
+         "blocked_by": false,
+         "blocking": false,
+         "followed_by": false,
+         "following": false,
+         "live_following": false,
+         "muting": false
+        },
+        "rest_id": "1679072882352168960",
+        "super_follow_eligible": false,
+        "super_followed_by": false,
+        "super_following": false,
+        "tweet_counts": {
+         "media_tweets": 8245,
+         "tweets": 31857
+        },
+        "verification": {
+         "verified": false
+        },
+        "website": {
+         "url": ""
+        }
+       }
+      }
+     },
+     "edit_control": {
+      "edit_tweet_ids": [
+       "2108098682541457613"
+      ],
+      "editable_until_msecs": "1791448467000",
+      "edits_remaining": "5",
+      "is_edit_eligible": true
+     },
+     "grok_analysis_button": true,
+     "grok_annotations": {
+      "is_image_editable_by_grok": true
+     },
+     "grok_translated_post_with_availability": {
+      "is_available": false
+     },
+     "has_birdwatch_notes": false,
+     "is_translatable": true,
+     "legacy": {
+      "bookmark_count": 24,
+      "bookmarked": false,
+      "conversation_id_str": "2108098682541457613",
+      "created_at": "Thu Oct 08 07:34:27 +0000 2026",
+      "display_text_range": [
+       0,
+       96
+      ],
+      "entities": {},
+      "favorite_count": 148,
+      "favorited": false,
+      "full_text": "🇫🇷 Elwan ou Louise, quel visage médiatique émergent de ces derniers jours est le plus éloquent ?",
+      "id_str": "2108098682541457613",
+      "is_quote_status": false,
+      "lang": "fr",
+      "quote_count": 14,
+      "reply_count": 110,
+      "retweet_count": 50,
+      "retweeted": false,
+      "user_id_str": "1679072882352168960"
+     },
+     "rest_id": "2108098682541457613",
+     "unmention_data": {},
+     "views": {
+      "count": "49815",
+      "state": "EnabledWithCount"
+     }
+    }
+   }
+  }
+ }
+}
