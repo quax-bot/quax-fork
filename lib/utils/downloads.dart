@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
@@ -8,7 +6,6 @@ import 'package:quax/constants.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/ui/errors.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as p;
 import 'package:pref/pref.dart';
 
 Future<void> downloadUriToPickedFile(BuildContext context, Uri uri, String fileName,
@@ -24,37 +21,34 @@ Future<void> downloadUriToPickedFile(BuildContext context, Uri uri, String fileN
       return;
     }
 
-    final downloadType = prefs.get(optionDownloadType);
-    final downloadPath = prefs.get(optionDownloadPath);
-
-    // If the user wants to pick a file every time a download happens
-    if (downloadType == optionDownloadTypeAsk || downloadPath == '') {
-      var fileInfo =
-          await FlutterFileDialog.saveFile(params: SaveFileDialogParams(fileName: sanitizedFilename, data: response));
-      if (fileInfo == null) {
-        return;
-      }
-
+    if (await saveDownloadedMedia(prefs, sanitizedFilename, response)) {
       onSuccess();
-      return;
     }
-
-    // Finally, save to the user-defined directory
-    var savedFile = p.join(downloadPath, sanitizedFilename);
-    await File(savedFile).writeAsBytes(response);
-
-    // Notify Android's media scanner so the file appears in the gallery
-    const platform = MethodChannel('browser_resolver');
-    try {
-      await platform.invokeMethod('scanMediaFile', {'path': savedFile});
-    } catch (_) {}
-
-    onSuccess();
   } catch (e) {
     if (context.mounted) {
       showSnackBar(context, icon: '🙊', message: e.toString());
     }
   }
+}
+
+const _storageChannel = MethodChannel('browser_resolver');
+
+bool isDownloadDirectoryUri(String path) => path.startsWith('content://');
+
+String downloadDirectoryLabel(String directoryUri) => Uri.decodeComponent(directoryUri.split('/').last);
+
+Future<String?> pickDownloadDirectory() => _storageChannel.invokeMethod<String>('pickDownloadDirectory');
+
+Future<bool> saveDownloadedMedia(BasePrefService prefs, String fileName, Uint8List data) async {
+  final String downloadPath = prefs.get(optionDownloadPath) ?? '';
+  if (prefs.get(optionDownloadType) == optionDownloadTypeAsk || !isDownloadDirectoryUri(downloadPath)) {
+    final savedPath = await FlutterFileDialog.saveFile(params: SaveFileDialogParams(fileName: fileName, data: data));
+    return savedPath != null;
+  }
+
+  await _storageChannel
+      .invokeMethod('saveToDirectory', {'directoryUri': downloadPath, 'fileName': fileName, 'data': data});
+  return true;
 }
 
 class UnableToSaveMedia {

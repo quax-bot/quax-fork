@@ -1,8 +1,8 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:pref/pref.dart';
+import 'package:quax/utils/downloads.dart';
 
 class SettingsMediaFragment extends StatelessWidget {
   const SettingsMediaFragment({super.key});
@@ -135,7 +135,7 @@ class DownloadTypeSettingState extends State<DownloadTypeSetting> {
         if (widget.prefs.get(optionDownloadType) == optionDownloadTypeDirectory)
           PrefButton(
             onTap: () async {
-              String? directoryPath = await FilePicker.getDirectoryPath();
+              String? directoryPath = await pickDownloadDirectory();
 
               if (directoryPath == null) {
                 return;
@@ -147,7 +147,7 @@ class DownloadTypeSettingState extends State<DownloadTypeSetting> {
             },
             title: Text(L10n.current.download_path),
             subtitle: Text(
-              downloadPath.isEmpty ? L10n.current.not_set : downloadPath,
+              isDownloadDirectoryUri(downloadPath) ? downloadDirectoryLabel(downloadPath) : L10n.current.not_set,
             ),
             child: Text(L10n.current.choose),
           )
