@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'client_transaction_id_exception.dart';
 import 'constants.dart';
 
@@ -15,10 +17,10 @@ class SignModuleLocator {
 
   const SignModuleLocator(this.fetch, {this.budget = signModuleSearchBudget});
 
-  Future<String> find(Uri pageUrl, String pageText) => _search(scriptLinks(pageUrl, pageText).toList(), {}, const []);
+  Future<String> find(Uri pageUrl, String pageText) => _search(scriptLinks(pageUrl, pageText), {}, const []);
 
-  Future<String> _search(List<Uri> found, Set<Uri> explored, List<Object> errors) async {
-    final wave = nextWave(found.where((uri) => !explored.contains(uri)), budget - explored.length);
+  Future<String> _search(Map<Uri, int> found, Set<Uri> explored, List<Object> errors) async {
+    final wave = nextWave(Map.fromEntries(found.entries.where((e) => !explored.contains(e.key))), budget - explored.length);
     if (wave.isEmpty) throw _notFound(explored.length, errors);
 
     final results = await Future.wait(wave.map(_tryFetch));
@@ -27,7 +29,7 @@ class SignModuleLocator {
     if (signModule != null) return signModule.text;
 
     return _search(
-      [...found, ...fetched.expand((r) => scriptLinks(r.url, r.text))],
+      fetched.map((r) => scriptLinks(r.url, r.text)).fold(found, mergeScores),
       {...explored, ...wave},
       [...errors, ...results.whereType<_Failed>().map((r) => r.error)],
     );
@@ -51,11 +53,17 @@ class SignModuleLocator {
 bool isSignModule(String text) => indicesRegex.hasMatch(text);
 
 /// Every script [text] refers to, whatever the way X loads it: a `<script>`
-/// tag, an ES module import, or the chunk map of the former webpack build.
-Iterable<Uri> scriptLinks(Uri base, String text) => {
-      ...scriptPathRegex.allMatches(text).map((m) => base.resolve(m.group(1)!)),
-      ...legacyOndemandScripts(text),
-    }.where((uri) => uri.host == scriptsHost);
+/// tag, an ES module import, or the chunk map of the former webpack build,
+/// with how likely it is to lead to the sign module.
+Map<Uri, int> scriptLinks(Uri base, String text) {
+  final links = [
+    ...scriptPathRegex.allMatches(text).map((m) => (uri: base.resolve(m.group(2)!), loaded: m.group(1) != null)),
+    ...legacyOndemandScripts(text).map((uri) => (uri: uri, loaded: true)),
+  ].where((link) => link.uri.host == scriptsHost);
+  return [...links.where((link) => link.loaded), ...links.where((link) => !link.loaded)]
+      .map((link) => {link.uri: relevance(link.uri, loaded: link.loaded)})
+      .fold({}, mergeScores);
+}
 
 Iterable<Uri> legacyOndemandScripts(String text) => legacyOndemandIndexRegex
     .allMatches(text)
@@ -63,17 +71,29 @@ Iterable<Uri> legacyOndemandScripts(String text) => legacyOndemandIndexRegex
     .nonNulls
     .map((hash) => Uri.parse(legacyOndemandUrlTemplate.replaceAll('{hash}', hash)));
 
-/// The scripts to download next: those whose name hints the most at signing,
-/// in the order they were found, at most [signModuleSearchWave] and [left].
-List<Uri> nextWave(Iterable<Uri> candidates, int left) {
-  final unique = candidates.toSet();
-  final best = unique.map(relevance).fold(0, (a, b) => a > b ? a : b);
-  return unique.where((uri) => relevance(uri) == best).take(left.clamp(0, signModuleSearchWave)).toList();
+/// Keeps the best score of a script found several times.
+Map<Uri, int> mergeScores(Map<Uri, int> a, Map<Uri, int> b) => {
+      ...a,
+      for (final MapEntry(:key, :value) in b.entries) key: max(value, a[key] ?? value),
+    };
+
+/// The scripts to download next: the most likely to lead to the sign module,
+/// closest to the page and in the order they are loaded, at most [signModuleSearchWave] and [left].
+List<Uri> nextWave(Map<Uri, int> candidates, int left) {
+  final best = candidates.values.fold(0, max);
+  return candidates.entries
+      .where((e) => e.value == best)
+      .map((e) => e.key)
+      .take(left.clamp(0, signModuleSearchWave))
+      .toList();
 }
 
-int relevance(Uri script) {
+/// The hints in its name first, then whether the page actually loads it: x.com
+/// also mentions, to preload them, many scripts it only loads on other pages.
+int relevance(Uri script, {required bool loaded}) {
   final name = script.pathSegments.lastOrNull?.toLowerCase() ?? '';
-  return signModuleNameHints.entries.where((hint) => hint.key.hasMatch(name)).fold(0, (sum, hint) => sum + hint.value);
+  final hints = signModuleNameHints.entries.where((hint) => hint.key.hasMatch(name)).fold(0, (sum, hint) => sum + hint.value);
+  return hints * 2 + (loaded ? 1 : 0);
 }
 
 sealed class _Result {}

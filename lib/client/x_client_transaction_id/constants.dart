@@ -9,8 +9,9 @@ final RegExp indicesRegex = RegExp(
 const String scriptsHost = 'abs.twimg.com';
 
 /// A quoted path to a script, absolute or relative to the file it is in.
+/// Group 1 is set when the script is loaded rather than only mentioned.
 final RegExp scriptPathRegex = RegExp(
-  r'''["'`]((?:https://abs\.twimg\.com/|\.{0,2}/)[\w./-]*\.js)["'`]''',
+  r'''(\bfrom\s*|\bimport\s*\(?\s*|\bsrc=)?["'`]((?:https://abs\.twimg\.com/|\.{0,2}/)[\w./-]*\.js)["'`]''',
 );
 
 /// The webpack build of x.com, before September 2026, listed its chunks by index.

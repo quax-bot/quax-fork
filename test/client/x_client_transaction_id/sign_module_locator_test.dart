@@ -75,6 +75,20 @@ void main() {
     ], reason: 'Each script costs a download when the app starts, the usual path should cost no more');
   });
 
+  test('Should follow the scripts the page loads before the ones it only preloads', () async {
+    final preloaded = [for (var i = 0; i < 100; i++) '"./assets/route-$i.js"'].join(',');
+    final x = _FakeX({
+      'https://abs.twimg.com/x/entry-A1.js':
+          'const deps=[$preloaded,"./assets/sentry-filter-B2.js"];import{a}from"./assets/sentry-filter-B2.js";',
+      'https://abs.twimg.com/x/assets/sentry-filter-B2.js': 'import(`./sign.o-C3.js`)',
+      'https://abs.twimg.com/x/assets/sign.o-C3.js': _signModule,
+    });
+
+    expect(await SignModuleLocator(x.fetch).find(_page, _scriptTag('https://abs.twimg.com/x/entry-A1.js')), _signModule,
+        reason: 'In October 2026 the entry script listed 149 scripts to preload before importing the one leading '
+            'to the sign module, which a search in the order of the mentions never reached');
+  });
+
   test('Should stop after its budget of downloads', () async {
     final scripts = {for (var i = 0; i < 100; i++) 'https://abs.twimg.com/x/s$i.js': 'import "./s${i + 1}.js"'};
     final x = _FakeX(scripts);
