@@ -12,6 +12,7 @@ import 'constants.dart';
 import 'cubic_curve.dart';
 import 'interpolate.dart';
 import 'rotation.dart';
+import 'sign_module_locator.dart';
 import 'utils.dart';
 
 const _browserHeaders = {
@@ -23,8 +24,6 @@ const _browserHeaders = {
   'X-Twitter-Active-User': 'yes',
   'X-Twitter-Client-Language': 'en',
 };
-
-typedef TextFetcher = Future<String> Function(Uri uri);
 
 class ClientTransaction {
   final List<int> _keyBytes;
@@ -56,8 +55,9 @@ class ClientTransaction {
   /// Downloads the x.com page and the sign module the generator is built from.
   /// [fetch] lets the tests replay recorded files instead of using the network.
   static Future<({String homePageHtml, String signFileText})> fetchSources({TextFetcher fetch = _fetchText}) async {
-    final homePageHtml = await fetch(Uri.https('x.com', '/home'));
-    final signFileText = await fetch(await _findSignFileUrl(homePageHtml, fetch));
+    final homePageUrl = Uri.https('x.com', '/home');
+    final homePageHtml = await fetch(homePageUrl);
+    final signFileText = await SignModuleLocator(fetch).find(homePageUrl, homePageHtml);
     return (homePageHtml: homePageHtml, signFileText: signFileText);
   }
 
@@ -145,20 +145,6 @@ class ClientTransaction {
 
   static Future<String> _fetchText(Uri uri) async =>
       (await http.get(uri, headers: _browserHeaders)).body;
-
-  static Future<Uri> _findSignFileUrl(String homePageHtml, TextFetcher fetch) async {
-    final entryUrl = _resolveImport(Uri.https('x.com', '/'), homePageHtml, entryScriptRegex, 'entry script');
-    final entryText = await fetch(entryUrl);
-    final importerUrl = _resolveImport(entryUrl, entryText, signImporterRegex, 'sign module importer');
-    final importerText = await fetch(importerUrl);
-    return _resolveImport(importerUrl, importerText, signFileRegex, 'sign module');
-  }
-
-  static Uri _resolveImport(Uri base, String text, RegExp regex, String what) {
-    final match = regex.firstMatch(text);
-    if (match == null) throw ClientTransactionIdException("Couldn't find the $what");
-    return base.resolve(match.group(1)!);
-  }
 
   static List<List<int>> _get2dArray(
       List<int> keyBytes, html_dom.Document doc) {

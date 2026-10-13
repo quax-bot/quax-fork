@@ -21,7 +21,7 @@ Future<String> _replay(Uri uri) async {
   if (name == null) {
     throw StateError('The app asked for $uri, which Chrome never downloaded on x.com, so the app no longer '
         'follows the path Chrome takes. Files Chrome downloaded: ${index.keys.join(', ')}. '
-        'Fix ClientTransaction._findSignFileUrl / constants.dart to follow them');
+        'Fix SignModuleLocator / constants.dart to follow them');
   }
   return File('$_fixtures/$name').readAsStringSync();
 }
@@ -54,8 +54,8 @@ void main() {
 
   test('Should find the sign module by following the recorded x.com files', () async {
     await expectLater(ClientTransaction.fetchSources(fetch: _replay), completes,
-        reason: 'The chain page -> entry script -> importer -> sign module no longer leads to the sign module: '
-            'read the recorded files and fix ClientTransaction._findSignFileUrl / constants.dart');
+        reason: 'The scripts of the page no longer lead to the sign module: '
+            'read the recorded files and fix SignModuleLocator / constants.dart');
   });
 
   final expected = jsonDecode(File('$_fixtures/expected.json').readAsStringSync()) as Map<String, dynamic>;

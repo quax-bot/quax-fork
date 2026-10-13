@@ -15,8 +15,10 @@ Symptom: requests fail before reaching the API, e.g. `Couldn't find the sign mod
    ```
 
 3. **Fix the code** from the new files in `test/fixtures/XClientTransactionId/`
-   (`sources.json` lists them): `ClientTransaction._findSignFileUrl` and
-   `constants.dart`, or the algorithm itself if the ids differ.
+   (`sources.json` lists them): `SignModuleLocator` (`sign_module_locator.dart`)
+   and `constants.dart` when the sign module is no longer found, or the algorithm
+   itself if the ids differ. The locator recognises the sign module by its
+   content, so a renamed file alone should never need a fix.
 
 4. **Run the tests again** until they pass.
 

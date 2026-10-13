@@ -18,13 +18,19 @@ class TwitterHeaders {
 
   static Future<ClientTransaction>? _initFuture;
 
+  /// Forgets a failed attempt, so that the next request tries again instead
+  /// of failing until the app restarts.
+  static Future<ClientTransaction> _initialize() => ClientTransaction.initialize().catchError((Object error, StackTrace stackTrace) {
+        _initFuture = null;
+        Error.throwWithStackTrace(error, stackTrace);
+      });
+
   static Future<Map<String, String>?> getXClientTransactionIdHeader(Uri? uri) async {
     if (uri == null) {
       return null;
     }
 
-    _initFuture ??= ClientTransaction.initialize();
-    final ct = await _initFuture!;
+    final ct = await (_initFuture ??= _initialize());
     return {'x-client-transaction-id': ct.generateTransactionId('GET', uri.path)};
   }
 

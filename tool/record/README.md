@@ -98,6 +98,6 @@ works even when the app is broken. Chrome's own sign module then computes a few
 ids, saved in `expected.json`.
 
 The tests replay those files through the app. A failure tells what to fix:
-- the app asks for a file Chrome never downloaded: fix `_findSignFileUrl` /
+- the app asks for a file Chrome never downloaded: fix `SignModuleLocator` /
   `constants.dart` to follow the files listed in `sources.json`;
 - the ids differ: X changed the algorithm itself.
