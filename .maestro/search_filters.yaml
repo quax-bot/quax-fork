@@ -1,0 +1,140 @@
+appId: com.teskann.quax
+name: Should search with every kind of filter, typed in the bar or picked in the filters page
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Open navigation menu"
+    timeout: 20000
+- tapOn: "(?s)Search.*Tab.*"
+- tapOn: "Search"
+
+# Operators typed in the bar move to the filters
+- inputText: "from:FlutterDev filter:images"
+- pressKey: Enter
+- assertVisible: "From @FlutterDev"
+- assertVisible: "Images"
+- tapOn: "(?s)Latest.*"
+- assertVisible: "(?s).*@FlutterDev.*"
+- swipe:
+    direction: UP
+
+# Content filters picked one after the other
+- tapOn: "(?s).*Filters, 2 active.*"
+- tapOn: "(?s)Content.*"
+- tapOn: "Videos"
+- tapOn: "Show results"
+- assertVisible: "Videos"
+- assertVisible: "(?s).*@FlutterDev.*"
+- tapOn: "(?s).*Filters, 2 active.*"
+- tapOn: "(?s)Content.*"
+- tapOn:
+    text: "All"
+    index: 1
+- tapOn:
+    text: "Only"
+    index: 0
+- tapOn: "Show results"
+- assertVisible: "Replies only"
+- assertVisible: "(?s).*@FlutterDev.*"
+- tapOn: "(?s).*Filters, 2 active.*"
+- tapOn: "(?s)Content.*"
+- tapOn:
+    text: "Include"
+    index: 0
+- tapOn:
+    text: "Exclude"
+    index: 1
+- tapOn: "Show results"
+- assertVisible: "Without links"
+
+# Minimum engagement
+- tapOn: "(?s).*Filters, 2 active.*"
+- tapOn: "(?s)Content.*"
+- tapOn:
+    text: "Include"
+    index: 1
+- tapOn: "(?s)Content.*"
+- tapOn: "(?s)Minimum engagement.*"
+- tapOn: "Replies"
+- inputText: "5"
+- tapOn: "Likes"
+- inputText: "50"
+- tapOn: "Reposts"
+- inputText: "10"
+- hideKeyboard
+- tapOn: "Show results"
+- assertVisible: "At least 50 likes"
+- assertVisible: "(?s).*@FlutterDev.*"
+
+# Words and hashtags typed in the bar
+- tapOn: "(?s).*Filters, 4 active.*"
+- tapOn: "Clear all"
+- tapOn: "Show results"
+- tapOn: "Search"
+- inputText: "\"hot reload\" (flutter OR dart) -kotlin"
+- pressKey: Enter
+- assertVisible: "“hot reload”"
+- assertVisible: "Any of: flutter, dart"
+- assertVisible: "Without “kotlin”"
+- tapOn: "(?s).*Filters, 3 active.*"
+- tapOn: "(?s)Words.*"
+- assertVisible: "Exact phrase"
+- tapOn: "Clear all"
+- tapOn: "Show results"
+
+# A language other than the app one
+- tapOn: "Search"
+- inputText: "flutter lang:fr"
+- pressKey: Enter
+- assertVisible: "français"
+- tapOn: "(?s).*Filters, 1 active.*"
+- assertVisible: "(?s).*français.*"
+- tapOn: "Clear all"
+- tapOn: "Show results"
+
+# Dates
+- tapOn: "flutter"
+- eraseText
+- inputText: "from:FlutterDev since:2025-01-01 until:2025-07-01"
+- pressKey: Enter
+- assertVisible: "Since Jan 1, 2025"
+- assertVisible: "Until Jul 1, 2025"
+- assertVisible: "(?s).*@FlutterDev.*"
+
+# Every filter at once, picked in the filters page
+- tapOn: "(?s).*Filters, 3 active.*"
+- tapOn: "Clear all"
+- tapOn: "Show results"
+- tapOn: "Search"
+- inputText: "dart"
+- pressKey: Enter
+- tapOn: "(?s).*Filters.*"
+- tapOn: "My language"
+- tapOn: "(?s)Accounts.*"
+- tapOn: "From these accounts"
+- inputText: "FlutterDev"
+- pressKey: Enter
+- inputText: "dart_lang"
+- pressKey: Enter
+- assertVisible: "@dart_lang"
+- hideKeyboard
+- tapOn: "(?s)Accounts.*"
+- tapOn: "(?s)Content.*"
+- tapOn:
+    text: "Exclude"
+    index: 0
+- tapOn:
+    text: "Only"
+    index: 1
+- tapOn: "(?s)Content.*"
+- tapOn: "(?s)Date range.*"
+- tapOn: "Since"
+- tapOn: "Switch to input"
+- inputText: "01/01/2025"
+- tapOn: "OK"
+- tapOn: "Show results"
+- assertVisible: "From @dart_lang"
+- assertVisible: "Links only"
+- assertVisible: "(?s).*(@FlutterDev|@dart_lang).*"
+- swipe:
+    direction: UP
