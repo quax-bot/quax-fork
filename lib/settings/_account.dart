@@ -5,6 +5,9 @@ import 'package:quax/database/entities.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/client/accounts.dart';
 
+void openAccountSettings(BuildContext context, {Key key = const Key('Settings')}) =>
+    Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsAccountFragment(key: key)));
+
 class SettingsAccountFragment extends StatefulWidget {
   const SettingsAccountFragment({super.key});
 
@@ -22,7 +25,7 @@ class _SettingsAccountFragment extends State<SettingsAccountFragment> {
         actions: [
           IconButton(
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TwitterLoginWebview())),
-              icon: const Icon(Icons.add))
+              icon: Icon(Icons.add, semanticLabel: L10n.of(context).add_account))
         ],
       ),
       body: FutureBuilder(

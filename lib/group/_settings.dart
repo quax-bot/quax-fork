@@ -14,7 +14,7 @@ void showFeedSettings(BuildContext context, GroupModel model) {
           children: [
             ListTile(
               leading: IconButton(
-                  icon: const Icon(Icons.arrow_back),
+                  icon: Icon(Icons.arrow_back, semanticLabel: L10n.of(context).back),
                   onPressed: () {
                     Navigator.of(context).pop();
                   }),
@@ -53,6 +53,15 @@ void showFeedSettings(BuildContext context, GroupModel model) {
                         onChanged: (value) async {
                           await model.toggleSubscriptionGroupIncludeRetweets(value);
                         }),
+                    if (state.isMainFeed)
+                      SwitchListTile(
+                          title: Text(
+                            L10n.of(context).include_accounts_in_groups,
+                          ),
+                          value: state.includeGroupMembers,
+                          onChanged: (value) async {
+                            await model.toggleMainFeedIncludeGroupMembers(value);
+                          }),
                   ],
                 );
               },
