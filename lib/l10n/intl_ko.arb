@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "닫기",
   "@close": {},
+  "community": "커뮤니티",
+  "@community": {},
   "community_about": "정보",
   "@community_about": {},
   "community_created": "{date}에 생성됨",

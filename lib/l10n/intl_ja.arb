@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "閉じる",
   "@close": {},
+  "community": "コミュニティ",
+  "@community": {},
   "community_about": "概要",
   "@community_about": {},
   "community_created": "{date}に作成",

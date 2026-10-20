@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Закрити",
   "@close": {},
+  "community": "Спільнота",
+  "@community": {},
   "community_about": "Про спільноту",
   "@community_about": {},
   "community_created": "Створено: {date}",

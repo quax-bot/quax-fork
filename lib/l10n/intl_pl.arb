@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Zamknij",
   "@close": {},
+  "community": "Społeczność",
+  "@community": {},
   "community_about": "Informacje",
   "@community_about": {},
   "community_created": "Utworzono: {date}",

@@ -71,6 +71,8 @@
   "@clickToShowMore": {},
   "close": "Close",
   "@close": {},
+  "community": "Community",
+  "@community": {},
   "community_about": "About",
   "@community_about": {},
   "community_created": "Created {date}",

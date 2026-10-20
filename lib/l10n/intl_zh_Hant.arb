@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "關閉",
   "@close": {},
+  "community": "社群",
+  "@community": {},
   "community_about": "簡介",
   "@community_about": {},
   "community_created": "建立於 {date}",

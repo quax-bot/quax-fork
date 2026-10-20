@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Kapat",
   "@close": {},
+  "community": "Topluluk",
+  "@community": {},
   "community_about": "Hakkında",
   "@community_about": {},
   "community_created": "Oluşturulma: {date}",

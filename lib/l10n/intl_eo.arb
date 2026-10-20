@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Fermi",
   "@close": {},
+  "community": "Komunumo",
+  "@community": {},
   "community_about": "Pri",
   "@community_about": {},
   "community_created": "Kreita en {date}",

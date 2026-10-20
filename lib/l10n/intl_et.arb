@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Sulge",
   "@close": {},
+  "community": "Kogukond",
+  "@community": {},
   "community_about": "Teave",
   "@community_about": {},
   "community_created": "Loodud {date}",

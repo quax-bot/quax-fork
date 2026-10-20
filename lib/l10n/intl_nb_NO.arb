@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Lukk",
   "@close": {},
+  "community": "Fellesskap",
+  "@community": {},
   "community_about": "Om",
   "@community_about": {},
   "community_created": "Opprettet {date}",

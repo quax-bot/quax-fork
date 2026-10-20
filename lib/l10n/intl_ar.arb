@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "اغلاق",
   "@close": {},
+  "community": "مجتمع",
+  "@community": {},
   "community_about": "نبذة",
   "@community_about": {},
   "community_created": "أُنشئ في {date}",

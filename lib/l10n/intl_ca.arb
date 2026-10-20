@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Tanca",
   "@close": {},
+  "community": "Comunitat",
+  "@community": {},
   "community_about": "Quant a",
   "@community_about": {},
   "community_created": "Creada el {date}",

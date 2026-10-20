@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Đóng",
   "@close": {},
+  "community": "Cộng đồng",
+  "@community": {},
   "community_about": "Giới thiệu",
   "@community_about": {},
   "community_created": "Tạo vào {date}",

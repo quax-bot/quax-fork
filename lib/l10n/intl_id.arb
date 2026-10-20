@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Tutup",
   "@close": {},
+  "community": "Komunitas",
+  "@community": {},
   "community_about": "Tentang",
   "@community_about": {},
   "community_created": "Dibuat {date}",

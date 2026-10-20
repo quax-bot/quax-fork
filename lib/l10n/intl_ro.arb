@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Închide",
   "@close": {},
+  "community": "Comunitate",
+  "@community": {},
   "community_about": "Despre",
   "@community_about": {},
   "community_created": "Creată în {date}",

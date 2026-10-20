@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Sluiten",
   "@close": {},
+  "community": "Community",
+  "@community": {},
   "community_about": "Over",
   "@community_about": {},
   "community_created": "Aangemaakt in {date}",

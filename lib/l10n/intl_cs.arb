@@ -67,6 +67,8 @@
   "@clickToShowMore": {},
   "close": "Zavřít",
   "@close": {},
+  "community": "Komunita",
+  "@community": {},
   "community_about": "O komunitě",
   "@community_about": {},
   "community_created": "Vytvořeno {date}",
