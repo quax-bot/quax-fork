@@ -13,6 +13,7 @@ import 'package:quax/constants.dart';
 import 'package:quax/database/repository.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/ui/locale_fallback.dart';
+import 'package:quax/community/community_screen.dart';
 import 'package:quax/group/feed_session_cache.dart';
 import 'package:quax/tweet/tweet_actions.dart';
 import 'package:quax/tweet/video_controller_pool.dart';
@@ -501,6 +502,7 @@ class _FritterAppState extends State<FritterApp> {
                     routeHome: (context) => PrefService.of(context, listen: false).get<bool>(optionOnboardingDone)!
                         ? const DefaultPage()
                         : const OnboardingWizard(),
+                    routeCommunity: (context) => const CommunityScreen(),
                     routeGroup: (context) => const GroupScreen(),
                     routeProfile: (context) => const ProfileScreen(),
                     routeSearch: (context) => const ResultsScreen(),
@@ -580,6 +582,9 @@ class _DefaultPageState extends State<DefaultPage> {
               initialMediaIndex: photoNumber == null || photoNumber < 1 ? 0 : photoNumber - 1,
               openMediaFullScreen: direct || photoNumber != null,
             ));
+        return;
+      case CommunityUriInfo(id: final id, about: final about):
+        Navigator.pushNamed(context, routeCommunity, arguments: CommunityScreenArguments(id, showAbout: about));
         return;
       case UnknownResult():
         showDialog(

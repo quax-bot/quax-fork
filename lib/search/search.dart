@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_triple/flutter_triple.dart';
+import 'package:quax/community/community_search_results.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
 import 'package:quax/generated/l10n.dart';
@@ -20,6 +21,9 @@ import 'package:quax/ui/errors.dart';
 import 'package:quax/user.dart';
 import 'package:pref/pref.dart';
 import 'package:provider/provider.dart';
+
+/// Index of the Communities tab in the search results.
+const communitiesSearchTab = 4;
 
 class SearchArguments {
   final int initialTab;
@@ -67,6 +71,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
   late final SearchTweetsPagination _topTweets;
   late final SearchTweetsPagination _latestTweets;
   late final SearchMediaPagination _mediaResults;
+  late final SearchCommunitiesPagination _communities;
   late final SearchUsersModel _searchUsersModel;
   late final SearchFiltersModel _filters;
   final SearchChipsVisibilityModel _chipsVisibility = SearchChipsVisibilityModel();
@@ -78,7 +83,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
   void initState() {
     super.initState();
 
-    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.initialTab);
+    _tabController = TabController(length: 5, vsync: this, initialIndex: widget.initialTab);
 
     final parsed = SearchQuery.parse(widget.query ?? '', _appLanguage);
     final opened = SearchQuery(parsed.text, widget.filters.merge(parsed.filters));
@@ -87,6 +92,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
     _topTweets = SearchTweetsPagination(product: 'Top', initialQuery: initialQuery);
     _latestTweets = SearchTweetsPagination(product: 'Latest', initialQuery: initialQuery);
     _mediaResults = SearchMediaPagination(initialQuery: initialQuery);
+    _communities = SearchCommunitiesPagination(initialQuery: opened.text);
     _searchUsersModel = SearchUsersModel();
 
     _queryController.text = opened.text;
@@ -112,6 +118,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
     _topTweets.dispose();
     _latestTweets.dispose();
     _mediaResults.dispose();
+    _communities.dispose();
     _filters.destroy();
     _chipsVisibility.destroy();
     super.dispose();
@@ -138,6 +145,8 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
     _topTweets.updateQuery(query);
     _latestTweets.updateQuery(query);
     _mediaResults.updateQuery(query);
+    // Operators filter posts and people, not communities
+    _communities.updateQuery(SearchQuery.parse(_queryController.text, _appLanguage).text);
     _searchUsersModel.searchUsers(query, context);
   }
 
@@ -181,6 +190,12 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
       ),
     );
   }
+
+  /// Hides what only applies to posts and people while the Communities tab is shown.
+  Widget _unlessCommunities(Widget child) => ListenableBuilder(
+        listenable: _tabController,
+        builder: (context, _) => _tabController.index == communitiesSearchTab ? const SizedBox.shrink() : child,
+      );
 
   Widget _filterChips() {
     return ScopedBuilder<SearchFiltersModel, SearchFilters>(
@@ -228,7 +243,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
           leading: IconButton(
               icon: Icon(Icons.arrow_back, semanticLabel: L10n.of(context).back),
               onPressed: () => Navigator.pop(context)),
-          trailing: [_filtersButton(), _followButton()],
+          trailing: [_unlessCommunities(Row(mainAxisSize: MainAxisSize.min, children: [_filtersButton(), _followButton()]))],
         ),
         bottom: TabBar(
           controller: _tabController,
@@ -237,6 +252,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
             Tab(icon: Icon(Icons.access_time_outlined, semanticLabel: L10n.of(context).search_tab_latest)),
             Tab(icon: Icon(Icons.image, semanticLabel: L10n.of(context).media)),
             Tab(icon: Icon(Icons.person_search, semanticLabel: L10n.of(context).search_tab_people)),
+            Tab(icon: Icon(Icons.groups, semanticLabel: L10n.of(context).search_tab_communities)),
           ],
           labelColor: Theme.of(context).appBarTheme.foregroundColor,
           indicatorColor: Theme.of(context).appBarTheme.foregroundColor,
@@ -251,7 +267,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
               create: (_) => VideoContextState(prefs.get(optionMediaDefaultMute))),
         ],
         child: Column(children: [
-          _filterChips(),
+          _unlessCommunities(_filterChips()),
           Expanded(
             child: NotificationListener<UserScrollNotification>(
               onNotification: _followResultsScroll,
@@ -276,6 +292,7 @@ class _ResultsScreenState extends State<_ResultsScreen> with SingleTickerProvide
                 ),
                 SearchMediaGrid(model: _mediaResults),
                 _UserSearchResultList(store: _searchUsersModel, onRetry: _dispatchQuery),
+                CommunitySearchResults(model: _communities),
               ],
               ),
             ),
