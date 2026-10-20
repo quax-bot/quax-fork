@@ -38,20 +38,23 @@ class SearchTweetsPagination {
   }
 }
 
-class SearchMediaPagination {
-  late final CursorPagingController<String, MediaGridItem> _paging = CursorPagingController(_loadPage);
+typedef SearchPageFetcher<T> = Future<CursorPage<String, T>> Function(String query, String? cursor);
+
+/// A paged list of search results whose query can change, like the Media tab.
+class SearchPagination<T> {
+  late final CursorPagingController<String, T> _paging = CursorPagingController(_loadPage);
+  final SearchPageFetcher<T> _fetch;
   String _query;
 
-  SearchMediaPagination({String initialQuery = ''}) : _query = initialQuery;
+  SearchPagination(this._fetch, {String initialQuery = ''}) : _query = initialQuery;
 
-  PagingController<int, MediaGridItem> get pagingController => _paging.pagingController;
+  PagingController<int, T> get pagingController => _paging.pagingController;
 
-  Future<CursorPage<String, MediaGridItem>> _loadPage(String? cursor) async {
+  Future<CursorPage<String, T>> _loadPage(String? cursor) async {
     if (_query.isEmpty) {
-      return (items: const <MediaGridItem>[], nextCursor: null);
+      return (items: <T>[], nextCursor: null);
     }
-    final result = await Twitter.searchTweets(_query, product: 'Media', cursor: cursor);
-    return mediaPageFromStatus(result, cursor);
+    return _fetch(_query, cursor);
   }
 
   void updateQuery(String newQuery) {
@@ -62,6 +65,15 @@ class SearchMediaPagination {
 
   void dispose() {
     _paging.dispose();
+  }
+}
+
+class SearchMediaPagination extends SearchPagination<MediaGridItem> {
+  SearchMediaPagination({super.initialQuery}) : super(_loadMedia);
+
+  static Future<CursorPage<String, MediaGridItem>> _loadMedia(String query, String? cursor) async {
+    final result = await Twitter.searchTweets(query, product: 'Media', cursor: cursor);
+    return mediaPageFromStatus(result, cursor);
   }
 }
 
