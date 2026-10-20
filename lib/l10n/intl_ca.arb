@@ -623,6 +623,8 @@
   "@search_filters_until": {},
   "search_filters_words": "Paraules",
   "@search_filters_words": {},
+  "search_tab_communities": "Comunitats",
+  "@search_tab_communities": {},
   "search_tab_latest": "Més recent",
   "@search_tab_latest": {},
   "search_tab_people": "Persones",

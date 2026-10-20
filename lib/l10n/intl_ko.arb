@@ -623,6 +623,8 @@
   "@search_filters_until": {},
   "search_filters_words": "단어",
   "@search_filters_words": {},
+  "search_tab_communities": "커뮤니티",
+  "@search_tab_communities": {},
   "search_tab_latest": "최신",
   "@search_tab_latest": {},
   "search_tab_people": "사용자",

@@ -623,6 +623,8 @@
   "@search_filters_until": {},
   "search_filters_words": "Cuvinte",
   "@search_filters_words": {},
+  "search_tab_communities": "Comunități",
+  "@search_tab_communities": {},
   "search_tab_latest": "Cele mai recente",
   "@search_tab_latest": {},
   "search_tab_people": "Persoane",

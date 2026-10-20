@@ -623,6 +623,8 @@
   "@search_filters_until": {},
   "search_filters_words": "关键词",
   "@search_filters_words": {},
+  "search_tab_communities": "社群",
+  "@search_tab_communities": {},
   "search_tab_latest": "最新",
   "@search_tab_latest": {},
   "search_tab_people": "用户",

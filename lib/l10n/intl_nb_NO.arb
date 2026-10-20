@@ -623,6 +623,8 @@
   "@search_filters_until": {},
   "search_filters_words": "Ord",
   "@search_filters_words": {},
+  "search_tab_communities": "Fellesskap",
+  "@search_tab_communities": {},
   "search_tab_latest": "Siste",
   "@search_tab_latest": {},
   "search_tab_people": "Personer",

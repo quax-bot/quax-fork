@@ -722,6 +722,8 @@
   "@search_filters_until": {},
   "search_filters_words": "Words",
   "@search_filters_words": {},
+  "search_tab_communities": "Communities",
+  "@search_tab_communities": {},
   "search_tab_latest": "Latest",
   "@search_tab_latest": {},
   "search_tab_people": "People",

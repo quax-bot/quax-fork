@@ -623,6 +623,8 @@
   "@search_filters_until": {},
   "search_filters_words": "キーワード",
   "@search_filters_words": {},
+  "search_tab_communities": "コミュニティ",
+  "@search_tab_communities": {},
   "search_tab_latest": "最新",
   "@search_tab_latest": {},
   "search_tab_people": "アカウント",
