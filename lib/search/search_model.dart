@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_triple/flutter_triple.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:quax/client/client.dart';
+import 'package:quax/community/community.dart';
 import 'package:quax/profile/media_grid/media_grid_items/media_grid_item.dart';
 import 'package:quax/search/search_filters.dart';
 import 'package:quax/tweet/paginated_tweet_list.dart';
@@ -75,6 +76,11 @@ class SearchMediaPagination extends SearchPagination<MediaGridItem> {
     final result = await Twitter.searchTweets(query, product: 'Media', cursor: cursor);
     return mediaPageFromStatus(result, cursor);
   }
+}
+
+class SearchCommunitiesPagination extends SearchPagination<Community> {
+  SearchCommunitiesPagination({super.initialQuery})
+      : super((query, cursor) => Twitter.searchCommunities(query, cursor: cursor));
 }
 
 class SearchUsersModel extends Store<List<UserWithExtra>> {

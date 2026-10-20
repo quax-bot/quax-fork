@@ -151,4 +151,38 @@ void main() {
       expect(page.nextCursor, isNull, reason: 'Without a slice there is no next page');
     });
   });
+
+  group('Twitter.parseCommunitiesSearch()', () {
+    Fixture firstPage() => fixturesOf('CommunitiesSearchQuery').firstWhere((page) => page.variables['cursor'] == null);
+
+    test('Should read every community found and the next page cursor', () {
+      final recorded = firstPage();
+      final found = recorded.body['data']['communities_search_slice']['items_results'] as List;
+      final page = Twitter.parseCommunitiesSearch(recorded.body);
+
+      expect(page.items, hasLength(found.length), reason: 'Each search result is a community to list');
+      expect(page.items.map((community) => community.name), everyElement(isNotEmpty),
+          reason: 'Each result shows the name of the community');
+      expect(page.items.map((community) => community.memberCount), everyElement(greaterThan(0)),
+          reason: 'Each result shows how many members the community has');
+      expect(page.nextCursor, isNotNull, reason: 'The next results load from the cursor of the slice');
+    });
+
+    test('Should skip a result that is not a community', () {
+      final page = Twitter.parseCommunitiesSearch({
+        'data': {
+          'communities_search_slice': {
+            'items_results': [
+              {'result': {'__typename': 'CommunityUnavailable'}},
+              null,
+              'text',
+            ],
+          },
+        },
+      });
+
+      expect(page.items, isEmpty, reason: 'An unavailable community has nothing to open, so it should not be listed');
+      expect(page.nextCursor, isNull, reason: 'Without slice_info there is no next page');
+    });
+  });
 }

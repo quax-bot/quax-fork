@@ -676,6 +676,26 @@ class Twitter {
     );
   }
 
+  static Future<CursorPage<String, Community>> searchCommunities(String query, {String? cursor}) async {
+    final uri = Uri.https('x.com', '/i/api/graphql/HKgnJbw10TZW41Na4ToaSw/CommunitiesSearchQuery', {
+      'variables': jsonEncode({'query': query, 'cursor': cursor}),
+    });
+    final response = await _twitterApi.client.get(uri);
+    return parseCommunitiesSearch(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  static CursorPage<String, Community> parseCommunitiesSearch(Map<String, dynamic> body) {
+    final slice = body['data']?['communities_search_slice'];
+    final items = slice?['items_results'];
+    return (
+      items: (items is List ? items : const [])
+          .map((item) => Community.fromResult(item is Map ? item['result'] : null))
+          .nonNulls
+          .toList(growable: false),
+      nextCursor: slice?['slice_info']?['next_cursor'] as String?,
+    );
+  }
+
   static TweetStatus parseCommunityTimeline(Map<String, dynamic> body) {
     final timeline = body['data']?['communityResults']?['result']?['ranked_community_timeline'];
     if (timeline is! Map<String, dynamic> || timeline['timeline']?['instructions'] is! List) {

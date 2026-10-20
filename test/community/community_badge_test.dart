@@ -8,9 +8,7 @@ import 'package:quax/constants.dart';
 import 'package:quax/tweet/conversation.dart';
 
 import '../fixtures.dart';
-import '../tweet/pump_tweets.dart';
 import '../ui/fake_images.dart';
-import '../ui/pump_app.dart';
 import 'pump_community.dart';
 
 // A search of @FlutterDev and @dart_lang, one of whose reposts was posted in a community
@@ -20,38 +18,16 @@ List<TweetChain> _searchWithACommunityPost() => Twitter.parseSearchTimeline(
 
 TweetWithCard _shown(TweetWithCard tweet) => tweet.retweetedStatusWithCard ?? tweet;
 
-/// Renders [chains] in a navigator that records the screens pushed on top of them.
-Future<List<Route<dynamic>>> _pumpPosts(WidgetTester tester, List<TweetChain> chains) async {
-  final pushed = <Route<dynamic>>[];
-  await pumpInApp(
-    tester,
-    withAppModels(Navigator(
-      observers: [_PushObserver(pushed)],
-      onGenerateRoute: (settings) => MaterialPageRoute(
-        settings: settings,
-        builder: (_) => settings.name == Navigator.defaultRouteName
-            ? ListView(
-                children: chains
-                    .map((chain) =>
-                        TweetConversation(id: chain.id, username: null, isPinned: chain.isPinned, tweets: chain.tweets))
-                    .toList())
-            : const SizedBox(),
-      ),
-    )),
-    settle: false,
-  );
-  pushed.clear();
-  return pushed;
-}
-
-class _PushObserver extends NavigatorObserver {
-  _PushObserver(this.pushed);
-
-  final List<Route<dynamic>> pushed;
-
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => pushed.add(route);
-}
+/// Renders [chains] the way a timeline does, keeping the screens pushed on top of them.
+Future<List<Route<dynamic>>> _pumpPosts(WidgetTester tester, List<TweetChain> chains) => pumpRoute(
+      tester,
+      ListView(
+          children: chains
+              .map((chain) =>
+                  TweetConversation(id: chain.id, username: null, isPinned: chain.isPinned, tweets: chain.tweets))
+              .toList()),
+      const RouteSettings(name: Navigator.defaultRouteName),
+    );
 
 void main() {
   setUpAll(() => HttpOverrides.global = FakeImageHttpOverrides());

@@ -24,10 +24,22 @@ Fixture recordedPosts() => fixture('CommunityTweetsTimeline', 'vars-a9e356', uns
 /// Answers every request with the recorded one it is identical to, so a wrong variable or cursor gets no answer.
 MockXClient mockOfX() => MockXClient(FixtureMap.load(Directory('test/fixtures')));
 
-/// Opens the recorded community as the app does. The returned list collects the screens pushed on top of it; a
-/// named route opens a blank page, so that what was asked for can be checked.
+/// Opens the recorded community as the app does.
 Future<List<Route<dynamic>>> openCommunity(WidgetTester tester,
-    {bool showAbout = false, AbstractTwitterClient? client, Map<String, dynamic> prefs = const {}}) async {
+        {bool showAbout = false, AbstractTwitterClient? client, Map<String, dynamic> prefs = const {}}) =>
+    pumpRoute(
+      tester,
+      const CommunityScreen(),
+      RouteSettings(name: routeCommunity, arguments: CommunityScreenArguments(community.id, showAbout: showAbout)),
+      client: client,
+      prefs: prefs,
+    );
+
+/// Opens [screen] as the route [settings], answering its requests with [client] or the mock of X, then lets it load.
+/// The returned list collects the screens pushed on top of it; a named route opens a blank page, so that what was
+/// asked for can be checked.
+Future<List<Route<dynamic>>> pumpRoute(WidgetTester tester, Widget screen, RouteSettings settings,
+    {AbstractTwitterClient? client, Map<String, dynamic> prefs = const {}}) async {
   Twitter.client = client ?? mockOfX();
   tester.view
     ..physicalSize = const Size(1080, 2400)
@@ -38,13 +50,7 @@ Future<List<Route<dynamic>>> openCommunity(WidgetTester tester,
     tester,
     withAppModels(Navigator(
       observers: [_PushObserver(pushed)],
-      onGenerateInitialRoutes: (_, _) => [
-        MaterialPageRoute(
-          settings: RouteSettings(
-              name: routeCommunity, arguments: CommunityScreenArguments(community.id, showAbout: showAbout)),
-          builder: (_) => const CommunityScreen(),
-        ),
-      ],
+      onGenerateInitialRoutes: (_, _) => [MaterialPageRoute(settings: settings, builder: (_) => screen)],
       onGenerateRoute: (settings) => MaterialPageRoute(settings: settings, builder: (_) => const SizedBox()),
     )),
     settle: false,
