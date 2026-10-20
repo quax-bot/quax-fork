@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quax/client/client.dart';
 import 'package:quax/community/community.dart';
+import 'package:quax/database/entities.dart';
 
 import '../fixtures.dart';
 
@@ -90,6 +91,64 @@ void main() {
         expect(status.chains, isEmpty, reason: 'A missing timeline in $result should not throw');
         expect(status.cursorBottom, isNull, reason: 'Without a timeline there is no next page');
       }
+    });
+  });
+
+  group('Twitter.parseCommunityMembers()', () {
+    Fixture firstPage() => fixture('membersSliceTimeline_Query', 'vars-8805f9', unstable: true);
+
+    test('Should read every member with what their tile shows, and the next page cursor', () {
+      final recorded = firstPage();
+      final found = recorded.body['data']['communityResults']['result']['members_slice']['items_results'] as List;
+      final page = Twitter.parseCommunityMembers(recorded.body);
+
+      expect(page.items, hasLength(found.length), reason: 'Each item of the slice is a member to list');
+      expect(page.items.map((user) => user.screenName), everyElement(isNotEmpty),
+          reason: 'Tapping a member opens their profile from the handle');
+      expect(page.items.map((user) => user.name), everyElement(isNotNull), reason: 'Each tile shows the name');
+      expect(page.items.map((user) => user.profileImageUrlHttps), everyElement(startsWith('https://')),
+          reason: 'Each tile shows the avatar');
+      expect(page.nextCursor, isNotNull, reason: 'The next members load from the cursor of the slice');
+    });
+
+    test('Should list members although X sends no account creation date for them', () {
+      final members = Twitter.parseCommunityMembers(firstPage().body).items;
+
+      expect(members.map((user) => user.createdAt), everyElement(isNull),
+          reason: 'X sends no creation date in this list, which is what this test is about');
+      expect(() => members.map(UserSubscription.fromUser).toList(), returnsNormally,
+          reason: 'The members list shows each member in a UserTile, built from a UserSubscription');
+    });
+
+    test('Should skip members X sends without a handle or a name', () {
+      final page = Twitter.parseCommunityMembers(_withResult({
+        'members_slice': {
+          'items_results': [
+            null,
+            {'result': null},
+            {
+              'result': {'rest_id': '1', 'core': {'name': 'No handle'}}
+            },
+            {
+              'result': {'rest_id': '2', 'core': {'screen_name': 'no_name'}}
+            },
+            {
+              'result': {'rest_id': '3', 'core': {'name': 'Kept', 'screen_name': 'kept'}}
+            },
+          ],
+        },
+      }));
+
+      expect(page.items.map((user) => user.screenName), ['kept'],
+          reason: 'A member without a handle cannot be opened, nor shown without a name');
+      expect(page.nextCursor, isNull, reason: 'Without slice_info there is no next page');
+    });
+
+    test('Should give no members when X sends no slice', () {
+      final page = Twitter.parseCommunityMembers(_withResult({}));
+
+      expect(page.items, isEmpty, reason: 'A missing slice should not throw');
+      expect(page.nextCursor, isNull, reason: 'Without a slice there is no next page');
     });
   });
 }

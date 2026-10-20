@@ -21,6 +21,7 @@ import 'package:quax/article/article.dart';
 import 'package:quax/user.dart';
 import 'package:quax/utils/cache.dart';
 import 'package:quax/utils/iterables.dart';
+import 'package:quax/utils/paging.dart';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 
@@ -649,6 +650,30 @@ class Twitter {
     });
     final response = await _twitterApi.client.get(uri);
     return parseCommunityTimeline(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  static Future<CursorPage<String, UserWithExtra>> getCommunityMembers(String id, {String? cursor}) async {
+    final uri = Uri.https('x.com', '/i/api/graphql/woAp_YdzAdqnWDrqLTNpAw/membersSliceTimeline_Query', {
+      'variables': jsonEncode({'communityId': id, 'cursor': cursor}),
+    });
+    final response = await _twitterApi.client.get(uri);
+    return parseCommunityMembers(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  static CursorPage<String, UserWithExtra> parseCommunityMembers(Map<String, dynamic> body) {
+    final slice = body['data']?['communityResults']?['result']?['members_slice'];
+    final items = slice?['items_results'];
+    return (
+      items: (items is List ? items : const [])
+          .map((item) => item is Map ? item['result'] : null)
+          .whereType<Map<String, dynamic>>()
+          // A member is opened from the handle and shown with the name
+          .where((user) => user['rest_id'] != null && user['core']?['screen_name'] != null)
+          .where((user) => user['core']?['name'] != null)
+          .map(UserWithExtra.fromNonLegacyJson)
+          .toList(growable: false),
+      nextCursor: slice?['slice_info']?['next_cursor'] as String?,
+    );
   }
 
   static TweetStatus parseCommunityTimeline(Map<String, dynamic> body) {

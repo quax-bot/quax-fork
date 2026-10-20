@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pref/pref.dart';
 import 'package:quax/community/community.dart';
+import 'package:quax/community/community_members_screen.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/tweet/_media.dart';
 import 'package:quax/ui/locale_fallback.dart';
@@ -36,7 +37,10 @@ class CommunityHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          CommunityMembersSummary(community: community),
+          InkWell(
+            onTap: () => CommunityMembersScreen.open(context, community.id, community.name),
+            child: CommunityMembersSummary(community: community),
+          ),
         ],
       ),
     );

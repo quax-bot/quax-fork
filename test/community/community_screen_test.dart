@@ -1,81 +1,23 @@
-import 'dart:convert';
 import 'dart:io';
 
-import 'package:dart_twitter_api/twitter_api.dart' show AbstractTwitterClient;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:quax/client/client.dart';
 import 'package:quax/community/_header.dart';
-import 'package:quax/community/community.dart';
-import 'package:quax/community/community_screen.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/tweet/_media.dart';
 import 'package:quax/tweet/tweet.dart';
 import 'package:quax/ui/errors.dart';
 
-import '../../tool/mock_x/fixture_map.dart';
 import '../fixture_client.dart';
 import '../fixtures.dart';
-import '../mock_x_client.dart';
 import '../tweet/pump_tweets.dart';
 import '../ui/fake_images.dart';
-import '../ui/pump_app.dart';
-
-final _recorded = fixture('CommunityQuery', 'vars-9a8157', unstable: true);
-final _community = Community.fromGraphql(_recorded.body)!;
-
-/// Opens the recorded community as the app does, keeping every screen pushed on top of it.
-Future<List<Route<dynamic>>> _openCommunity(WidgetTester tester,
-    {bool showAbout = false, AbstractTwitterClient? client, Map<String, dynamic> prefs = const {}}) async {
-  Twitter.client = client ?? MockXClient(FixtureMap.load(Directory('test/fixtures')));
-  tester.view
-    ..physicalSize = const Size(1080, 2400)
-    ..devicePixelRatio = 2.625;
-  addTearDown(tester.view.reset);
-  final pushed = <Route<dynamic>>[];
-  await pumpInApp(
-    tester,
-    withAppModels(Navigator(
-      observers: [_PushObserver(pushed)],
-      onGenerateInitialRoutes: (_, _) => [
-        MaterialPageRoute(
-          settings: RouteSettings(
-              name: routeCommunity, arguments: CommunityScreenArguments(_community.id, showAbout: showAbout)),
-          builder: (_) => const CommunityScreen(),
-        ),
-      ],
-    )),
-    settle: false,
-    prefs: prefs,
-  );
-  await pumpUntilLoaded(tester);
-  pushed.clear();
-  return pushed;
-}
-
-class _PushObserver extends NavigatorObserver {
-  _PushObserver(this.pushed);
-
-  final List<Route<dynamic>> pushed;
-
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => pushed.add(route);
-}
+import 'pump_community.dart';
 
 final _shareButton = find.descendant(of: find.byType(CommunityHeader), matching: find.byIcon(Icons.share));
-
-Future<void> _pumpTransition(WidgetTester tester) async {
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 500));
-}
-
-/// The value of [variable] in each [operation] request the app sent, in order.
-List<dynamic> _sent(List<Uri> uris, String operation, String variable) => uris
-    .where((uri) => uri.pathSegments.last == operation)
-    .map((uri) => (jsonDecode(uri.queryParameters['variables']!) as Map)[variable])
-    .toList();
 
 void main() {
   const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
@@ -83,20 +25,20 @@ void main() {
   setUpAll(() => HttpOverrides.global = FakeImageHttpOverrides());
 
   testWidgets('Should show the name, the member count and the banner of the community', (tester) async {
-    await _openCommunity(tester);
+    await openCommunity(tester);
 
     expect(find.byType(ErrorCard), findsNothing, reason: 'The recorded community should load without error');
-    expect(find.text(_community.name), findsOneWidget,
+    expect(find.text(community.name), findsOneWidget,
         reason: 'The header shows the name, the app bar only once the banner is scrolled away');
-    final members = NumberFormat.compact(locale: 'en').format(_community.memberCount);
+    final members = NumberFormat.compact(locale: 'en').format(community.memberCount);
     expect(find.textContaining('$members Members', findRichText: true), findsOneWidget,
         reason: 'The header shows how many members the community has');
     expect(find.byType(CommunityBanner), findsOneWidget, reason: 'The recorded community has a banner');
   });
 
   testWidgets('Should list the Top posts of the community, without a community badge', (tester) async {
-    await _openCommunity(tester);
-    final posts = Twitter.parseCommunityTimeline(fixture('CommunityTweetsTimeline', 'vars-a9e356', unstable: true).body);
+    await openCommunity(tester);
+    final posts = Twitter.parseCommunityTimeline(recordedPosts().body);
 
     final shown = tester.widgetList<TweetTile>(find.byType(TweetTile)).map((tile) => tile.tweet.idStr).toList();
     expect(shown, isNotEmpty, reason: 'The Top tab opens first and lists the posts X sent');
@@ -107,66 +49,64 @@ void main() {
 
   testWidgets('Should send the bottom cursor to load the next page of posts', (tester) async {
     final uris = <Uri>[];
-    await _openCommunity(tester,
+    await openCommunity(tester,
         client: FixtureTwitterClient({
-          'CommunityQuery': _recorded,
-          'CommunityTweetsTimeline': fixture('CommunityTweetsTimeline', 'vars-a9e356', unstable: true),
+          'CommunityQuery': recordedCommunity,
+          'CommunityTweetsTimeline': recordedPosts(),
         }, requestedUris: uris));
     final firstPage =
-        Twitter.parseCommunityTimeline(fixture('CommunityTweetsTimeline', 'vars-a9e356', unstable: true).body);
+        Twitter.parseCommunityTimeline(recordedPosts().body);
 
-    for (var i = 0; i < 40 && _sent(uris, 'CommunityTweetsTimeline', 'cursor').length < 2; i++) {
-      await tester.drag(find.byType(NestedScrollView), const Offset(0, -1500));
-      await tester.pump(const Duration(milliseconds: 100));
-    }
+    await scrollDownUntil(
+        tester, find.byType(NestedScrollView), () => sentVariable(uris, 'CommunityTweetsTimeline', 'cursor').length > 1);
 
-    expect(_sent(uris, 'CommunityTweetsTimeline', 'cursor'), [null, firstPage.cursorBottom],
+    expect(sentVariable(uris, 'CommunityTweetsTimeline', 'cursor'), [null, firstPage.cursorBottom],
         reason: 'The first page is asked without a cursor, the next one with the bottom cursor of the first');
   });
 
   testWidgets('Should reload the first page of posts when pulled down', (tester) async {
     final uris = <Uri>[];
-    await _openCommunity(tester,
+    await openCommunity(tester,
         client: FixtureTwitterClient({
-          'CommunityQuery': _recorded,
-          'CommunityTweetsTimeline': fixture('CommunityTweetsTimeline', 'vars-a9e356', unstable: true),
+          'CommunityQuery': recordedCommunity,
+          'CommunityTweetsTimeline': recordedPosts(),
         }, requestedUris: uris));
 
     await tester.fling(find.byType(NestedScrollView), const Offset(0, 600), 1500);
     await pumpUntilLoaded(tester);
     await tester.pump(const Duration(seconds: 1));
 
-    expect(_sent(uris, 'CommunityTweetsTimeline', 'cursor'), [null, null],
+    expect(sentVariable(uris, 'CommunityTweetsTimeline', 'cursor'), [null, null],
         reason: 'Pulling the list down should ask X for the first page again');
   });
 
   testWidgets('Should show the description, topic, creation date and rules in the About tab', (tester) async {
-    await _openCommunity(tester);
+    await openCommunity(tester);
     await tester.tap(find.text('About'));
-    await _pumpTransition(tester);
+    await pumpTransition(tester);
 
-    expect(find.text(_community.description!), findsOneWidget, reason: 'About starts with the description');
-    expect(find.text(_community.topic!), findsOneWidget, reason: 'About shows the topic of the community');
-    expect(find.text('Created ${DateFormat.yMMMM('en').format(_community.createdAt!)}'), findsOneWidget,
+    expect(find.text(community.description!), findsOneWidget, reason: 'About starts with the description');
+    expect(find.text(community.topic!), findsOneWidget, reason: 'About shows the topic of the community');
+    expect(find.text('Created ${DateFormat.yMMMM('en').format(community.createdAt!)}'), findsOneWidget,
         reason: 'About shows when the community was created');
-    for (final rule in _community.rules) {
+    for (final rule in community.rules) {
       expect(find.text(rule), findsOneWidget, reason: 'About lists every rule, here "$rule"');
     }
   });
 
   testWidgets('Should open on the About tab from an /about link', (tester) async {
-    await _openCommunity(tester, showAbout: true);
+    await openCommunity(tester, showAbout: true);
 
-    expect(find.text(_community.rules.first), findsOneWidget,
+    expect(find.text(community.rules.first), findsOneWidget,
         reason: 'x.com/i/communities/<id>/about shows the rules, so QuaX should open on About');
     expect(find.byType(TweetTile), findsNothing, reason: 'The posts are in the other tab');
   });
 
   testWidgets('Should open the banner in full screen when tapped', (tester) async {
-    final pushed = await _openCommunity(tester);
+    final pushed = await openCommunity(tester);
 
     await tester.tap(find.byType(CommunityBanner));
-    await _pumpTransition(tester);
+    await pumpTransition(tester);
 
     expect(pushed, hasLength(1), reason: 'Tapping the banner should open one screen');
     expect(find.byType(TweetMediaView), findsOneWidget, reason: 'The banner opens in the media viewer');
@@ -188,27 +128,27 @@ void main() {
         .setMockMethodCallHandler(shareChannel, null));
 
     testWidgets('Should share the x.com link of the community', (tester) async {
-      await _openCommunity(tester);
+      await openCommunity(tester);
       await tester.tap(_shareButton);
       await tester.pump();
 
-      expect(shared, ['https://x.com/i/communities/${_community.id}'],
+      expect(shared, ['https://x.com/i/communities/${community.id}'],
           reason: 'The shared link should open the community on X');
     });
 
     testWidgets('Should share the link on the site chosen in the settings', (tester) async {
-      await _openCommunity(tester, prefs: {optionShareBaseUrl: 'https://fxtwitter.com'});
+      await openCommunity(tester, prefs: {optionShareBaseUrl: 'https://fxtwitter.com'});
       await tester.tap(_shareButton);
       await tester.pump();
 
-      expect(shared, ['https://fxtwitter.com/i/communities/${_community.id}'],
+      expect(shared, ['https://fxtwitter.com/i/communities/${community.id}'],
           reason: 'Shared links follow the share site setting, as for posts and profiles');
     });
   });
 
   testWidgets('Should offer to retry when X sends no community', (tester) async {
     final requested = <String>[];
-    await _openCommunity(tester,
+    await openCommunity(tester,
         client: FixtureTwitterClient({
           'CommunityQuery': Fixture('empty', {
             'body': {'data': {}}
