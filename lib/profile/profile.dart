@@ -294,9 +294,7 @@ class _ProfileScreenBodyState extends State<ProfileScreenBody> with TickerProvid
     var metadataTextStyle = const TextStyle(fontSize: 12.5);
     var prefs = PrefService.of(context, listen: false);
 
-    var shareBaseUrlOption = prefs.get(optionShareBaseUrl);
-    var shareBaseUrl =
-        shareBaseUrlOption != null && shareBaseUrlOption.isNotEmpty ? shareBaseUrlOption : 'https://x.com';
+    var shareBaseUrl = shareBaseUrlOf(prefs);
 
     List<RichTextPart> descParts = [];
     if (user.description != null && user.description!.isNotEmpty) {

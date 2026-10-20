@@ -516,9 +516,7 @@ class TweetTileState extends State<TweetTile> with SingleTickerProviderStateMixi
   Widget build(BuildContext context) {
     final prefs = PrefService.of(context, listen: false);
 
-    var shareBaseUrlOption = prefs.get(optionShareBaseUrl);
-    var shareBaseUrl =
-        shareBaseUrlOption != null && shareBaseUrlOption.isNotEmpty ? shareBaseUrlOption : 'https://x.com';
+    var shareBaseUrl = shareBaseUrlOf(prefs);
 
     TweetWithCard tweet = this.tweet.retweetedStatusWithCard == null ? this.tweet : this.tweet.retweetedStatusWithCard!;
 

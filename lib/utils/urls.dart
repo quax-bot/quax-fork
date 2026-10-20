@@ -20,6 +20,12 @@ Future<void> openInDefaultBrowser(String url) async {
   await intent.launch();
 }
 
+/// The site shared links point to: the one chosen in the settings, or x.com.
+String shareBaseUrlOf(BasePrefService prefs) {
+  final chosen = prefs.get<String>(optionShareBaseUrl);
+  return chosen == null || chosen.isEmpty ? 'https://x.com' : chosen;
+}
+
 Future<void> openUri(BuildContext context, String uri) async {
   final embedded = PrefService.of(context).get(optionOpenLinksInEmbeddedBrowser) == true;
   await launchUrlString(

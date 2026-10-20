@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pref/pref.dart';
+import 'package:quax/constants.dart';
 import 'package:quax/profile/profile.dart' show profileTabs;
 import 'package:quax/utils/urls.dart';
 
@@ -179,6 +181,20 @@ void main() {
       expect(waybackSearchUri('quax_tests', '2095934459606376826').toString(),
           'https://web.archive.org/web/*/twitter.com/quax_tests/status/2095934459606376826*',
           reason: 'Most captures predate x.com, and the trailing star also matches the variants with a query');
+    });
+  });
+
+  group('shareBaseUrlOf()', () {
+    test('Should share x.com links when no site is chosen', () {
+      expect(shareBaseUrlOf(PrefServiceCache(defaults: {optionShareBaseUrl: ''})), 'https://x.com',
+          reason: 'An empty setting means the user kept the default site');
+      expect(shareBaseUrlOf(PrefServiceCache()), 'https://x.com',
+          reason: 'A setting never written should also fall back to x.com');
+    });
+
+    test('Should share links to the site chosen in the settings', () {
+      expect(shareBaseUrlOf(PrefServiceCache(defaults: {optionShareBaseUrl: 'https://fxtwitter.com'})),
+          'https://fxtwitter.com', reason: 'The setting replaces x.com in every shared link');
     });
   });
 }
