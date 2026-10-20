@@ -123,6 +123,30 @@ void main() {
       });
     });
 
+    group('community links', () {
+      test('Should read the id of a community link', () async {
+        final community = parsedAs<CommunityUriInfo>(
+            await parse('https://x.com/i/communities/1472249315724771329'),
+            '/i/communities/<id> is the address of a community');
+
+        expect(community.id, '1472249315724771329', reason: 'The community screen loads the community from this id');
+        expect(community.about, isFalse, reason: 'A plain community link opens on its posts');
+      });
+
+      test('Should open the about tab of an /about link', () async {
+        final community = parsedAs<CommunityUriInfo>(
+            await parse('https://x.com/i/communities/1472249315724771329/about'),
+            'The /about page still names a community');
+
+        expect(community.about, isTrue, reason: 'X uses /about for the rules and description of the community');
+      });
+
+      test('Should not read a community link without an id', () async {
+        expect(await parse('https://x.com/i/communities/suggested'), isA<UnknownResult>(),
+            reason: 'The list of suggested communities is not a community, so it should go to the browser');
+      });
+    });
+
     group('unknown links', () {
       test('Should return UnknownResult for the site root', () async {
         expect(await parse('https://x.com/'), isA<UnknownResult>(),

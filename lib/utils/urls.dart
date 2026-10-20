@@ -137,6 +137,20 @@ Future<String?> _resolveShortUrl(Uri shortUrl) async {
   return response.request?.url.toString();
 }
 
+class CommunityUriInfo extends UriParseResult {
+  final String id;
+  final bool about;
+
+  CommunityUriInfo(this.id, {this.about = false});
+}
+
+// https://x.com/i/communities/1472249315724771329, and its /about page
+CommunityUriInfo? _parseAsCommunityLink(List<String> parts) {
+  if (parts.length < 3 || parts[0] != "i" || parts[1] != "communities") return null;
+  if (int.tryParse(parts[2]) == null) return null;
+  return CommunityUriInfo(parts[2], about: parts.length > 3 && parts[3] == "about");
+}
+
 class UnknownResult extends UriParseResult {}
 
 Future<UriParseResult> parseUri(Uri link) async {
@@ -160,5 +174,5 @@ Future<UriParseResult> parseUri(Uri link) async {
   if (postInfo != null) {
     return postInfo;
   }
-  return UnknownResult();
+  return _parseAsCommunityLink(parts) ?? UnknownResult();
 }
