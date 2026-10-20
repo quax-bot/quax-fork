@@ -12,6 +12,7 @@ import 'package:quax/client/accounts.dart';
 import 'package:quax/client/client_regular_account.dart';
 import 'package:quax/client/client_unauthenticated.dart';
 import 'package:quax/client/rate_limit_tracker.dart';
+import 'package:quax/community/community.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
 import 'package:quax/generated/l10n.dart';
@@ -616,6 +617,45 @@ class Twitter {
       return _createChainsFromGridModule(timeline);
     }
 
+    return createUnconversationedChainsGraphql(timeline, 'tweet', [], true);
+  }
+
+  static const Map<String, bool> _communityFeatures = {
+    "c9s_list_members_action_api_enabled": false,
+    "c9s_superc9s_indication_enabled": false,
+  };
+
+  static Future<Community> getCommunity(String id) async {
+    final uri = Uri.https('x.com', '/i/api/graphql/-ElI1vg3dYbttVMhBhGdLw/CommunityQuery', {
+      'variables': jsonEncode({'communityId': id}),
+      'features': jsonEncode(_communityFeatures),
+    });
+    final response = await _twitterApi.client.get(uri);
+    return Community.fromGraphql(jsonDecode(response.body) as Map<String, dynamic>) ?? (throw NotFoundException());
+  }
+
+  /// The Top posts of a community, the tab the website opens on.
+  static Future<TweetStatus> getCommunityTweets(String id, {String? cursor}) async {
+    final uri = Uri.https('x.com', '/i/api/graphql/wXey4HQTUdYUlWWXltWMpg/CommunityTweetsTimeline', {
+      'variables': jsonEncode({
+        'communityId': id,
+        'count': 20,
+        'cursor': ?cursor,
+        'displayLocation': 'Community',
+        'rankingMode': 'Relevance',
+        'withCommunity': true,
+      }),
+      'features': jsonEncode(_timelineFeatures),
+    });
+    final response = await _twitterApi.client.get(uri);
+    return parseCommunityTimeline(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  static TweetStatus parseCommunityTimeline(Map<String, dynamic> body) {
+    final timeline = body['data']?['communityResults']?['result']?['ranked_community_timeline'];
+    if (timeline is! Map<String, dynamic> || timeline['timeline']?['instructions'] is! List) {
+      return TweetStatus(chains: [], cursorBottom: null, cursorTop: null);
+    }
     return createUnconversationedChainsGraphql(timeline, 'tweet', [], true);
   }
 

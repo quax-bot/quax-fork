@@ -78,6 +78,8 @@ Future<void> Function(String? cursor)? _appPages(RecordedRequest recorded) {
     'UserOriginalsTimeline' when variables['sortByMostLiked'] == true => null,
     'UserOriginalsTimeline' => (cursor) => timeline('profile', cursor),
     'UserTweetsAndReplies' => (cursor) => timeline('profile', cursor, includeReplies: true),
+    'CommunityQuery' => (_) => Twitter.getCommunity(variables['communityId']),
+    'CommunityTweetsTimeline' => (cursor) => Twitter.getCommunityTweets(variables['communityId'], cursor: cursor),
     'UserVideoTimeline' => (cursor) => timeline('media', cursor),
     'UserPhotoTimeline' => (cursor) => timeline('photos', cursor),
     _ => null,
