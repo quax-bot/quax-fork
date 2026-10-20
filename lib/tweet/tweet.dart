@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:quax/client/client.dart';
+import 'package:quax/community/community_screen.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/import_data_model.dart';
@@ -318,6 +319,19 @@ class TweetTileState extends State<TweetTile> with SingleTickerProviderStateMixi
         TweetAction.copyText => () => copyToClipboard(context, data.tweetText, L10n.of(context).text_copied),
         TweetAction.download => () => _downloadCurrentMedia(data.tweet),
       };
+
+  /// Opens the community the post was posted in. Hidden in that community, where every post would show it.
+  Widget? _communityBadge(String? communityId) {
+    if (communityId == null) return null;
+    final opened = ModalRoute.of(context)?.settings.arguments;
+    if (opened is CommunityScreenArguments && opened.id == communityId) return null;
+
+    return _TweetTileLeading(
+      onTap: () => Navigator.pushNamed(context, routeCommunity, arguments: CommunityScreenArguments(communityId)),
+      icon: Icons.groups,
+      children: [TextSpan(text: L10n.of(context).community, style: Theme.of(context).textTheme.bodySmall)],
+    );
+  }
 
   IconData _menuIcon(TweetAction action, TweetWithCard tweet) => switch (action) {
         TweetAction.like when context.read<LikedTweetModel>().isLiked(tweet.idStr!) => Icons.favorite,
@@ -796,6 +810,7 @@ class TweetTileState extends State<TweetTile> with SingleTickerProviderStateMixi
             TextSpan(text: L10n.of(context).pinned_tweet, style: theme.textTheme.bodySmall)
           ])
         : null;
+    final communityBadge = _communityBadge(tweet.communityId);
     final threadBadge = isThread
         ? _TweetTileLeading(icon: Icons.forum, children: [
             TextSpan(text: L10n.of(context).thread, style: theme.textTheme.bodySmall)
@@ -825,6 +840,7 @@ class TweetTileState extends State<TweetTile> with SingleTickerProviderStateMixi
                   retweetBanner,
                   if (!widget.threadConnectTop) replyToTile,
                   ?pinnedBadge,
+                  ?communityBadge,
                   ?threadBadge,
                   _buildThreadBody(
                       theme,
@@ -865,6 +881,7 @@ class TweetTileState extends State<TweetTile> with SingleTickerProviderStateMixi
                         retweetBanner,
                         replyToTile,
                         ?pinnedBadge,
+                        ?communityBadge,
                         ?threadBadge,
                         headerTile,
                         ...bodyChildren,

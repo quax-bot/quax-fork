@@ -1168,6 +1168,7 @@ class TweetWithCard extends Tweet {
   Article? article;
   int? viewCount;
   bool isSubscriberPreview = false;
+  String? communityId;
 
   TweetWithCard();
 
@@ -1184,6 +1185,7 @@ class TweetWithCard extends Tweet {
     json['noteText'] = noteText;
     json['noteEntities'] = noteEntities?.toJson();
     json['isSubscriberPreview'] = isSubscriberPreview;
+    json['communityId'] = communityId;
 
     return json;
   }
@@ -1246,6 +1248,7 @@ class TweetWithCard extends Tweet {
     tweetWithCard.noteText = e['noteText'];
     tweetWithCard.noteEntities = e['noteEntities'] == null ? null : Entities.fromJson(e['noteEntities']);
     tweetWithCard.isSubscriberPreview = e['isSubscriberPreview'] as bool? ?? false;
+    tweetWithCard.communityId = e['communityId'] as String?;
 
     return tweetWithCard;
   }
@@ -1306,6 +1309,7 @@ class TweetWithCard extends Tweet {
         int.tryParse(result['views']?['count'] ?? ''));
 
     tweet.isSubscriberPreview = isSubscriberPreview;
+    tweet.communityId = result['community_results']?['result']?['id_str'] as String?;
 
     if (tweet.card == null && result['card']?['legacy'] != null) {
       tweet.card = result['card']['legacy'];
