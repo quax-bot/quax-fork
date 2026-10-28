@@ -592,6 +592,9 @@ class _DefaultPageState extends State<DefaultPage> {
       case CommunityUriInfo(id: final id, about: final about):
         Navigator.pushNamed(context, routeCommunity, arguments: CommunityScreenArguments(id, showAbout: about));
         return;
+      case SpaceUriInfo(id: final id):
+        openSpace(context, id);
+        return;
       case UnknownResult():
         showDialog(
           context: context,
