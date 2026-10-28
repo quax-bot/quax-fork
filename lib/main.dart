@@ -14,6 +14,7 @@ import 'package:quax/database/repository.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/ui/locale_fallback.dart';
 import 'package:quax/community/community_screen.dart';
+import 'package:quax/space/space_screen.dart';
 import 'package:quax/group/feed_session_cache.dart';
 import 'package:quax/tweet/tweet_actions.dart';
 import 'package:quax/tweet/video_controller_pool.dart';
@@ -507,6 +508,7 @@ class _FritterAppState extends State<FritterApp> {
                         ? const DefaultPage()
                         : const OnboardingWizard(),
                     routeCommunity: (context) => const CommunityScreen(),
+                    routeSpace: (context) => const SpaceScreen(),
                     routeGroup: (context) => const GroupScreen(),
                     routeProfile: (context) => const ProfileScreen(),
                     routeSearch: (context) => const ResultsScreen(),

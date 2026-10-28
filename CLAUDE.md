@@ -48,6 +48,7 @@ Each feature folder contains its screen(s) and its model:
 | `home/` | Home screen with tab navigation |
 | `profile/` | User profile view |
 | `community/` | X communities: their page, members and search results |
+| `space/` | X Spaces: the card of a shared Space, its page and its player |
 | `tweet/` | Tweet card rendering, threads, video playback |
 | `search/` | Search for tweets and users |
 | `trends/` | Trending topics |
