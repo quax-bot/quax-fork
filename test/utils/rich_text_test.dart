@@ -3,9 +3,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:quax/client/client.dart';
 import 'package:quax/utils/rich_text.dart';
 
+import '../fixtures.dart';
 import '../tweet/card_fixtures.dart';
 
 const _summaryCardTweet = '2095921351106146703';
+
+// A recorded post sharing a space, as AudioSpaceById sends it along with the space
+TweetWithCard _spaceTweet() => TweetWithCard.fromGraphqlJson(fixturesOf('AudioSpaceById')
+    .map((recorded) => recorded.body['data']?['audioSpace']?['metadata']?['tweet_results']?['result'])
+    .whereType<Map<String, dynamic>>()
+    .firstWhere((post) => '${post['legacy']?['entities']?['urls']}'.contains('/i/spaces/')));
 
 Future<String> _shownText(WidgetTester tester, TweetWithCard tweet, {required bool hideCardUrls}) async {
   late List<RichTextPart> parts;
@@ -39,5 +46,14 @@ void main() {
 
     expect(await _shownText(tester, tweet, hideCardUrls: true), contains('flutter.dev'),
         reason: 'Only the links to what the card shows are dropped');
+  });
+
+  testWidgets('Should drop the link of a space when its card shows it', (tester) async {
+    final tweet = _spaceTweet();
+
+    expect(tweet.entities?.urls?.map((url) => url.expandedUrl), contains(startsWith('https://x.com/i/spaces/')),
+        reason: 'The recorded post links to its space');
+    expect(await _shownText(tester, tweet, hideCardUrls: true), isNot(contains('/i/spaces/')),
+        reason: 'The space is in the card, so its link should not be repeated in the text');
   });
 }
