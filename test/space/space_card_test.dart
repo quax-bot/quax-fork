@@ -36,6 +36,42 @@ void main() {
       );
     });
 
+    testWidgets('Should show a card scrolled back into view at once, without loading its space again', (tester) async {
+      final space = spaceOf(recordedSpace(isLive));
+      final x = mockOfX();
+      await pumpRoute(
+        tester,
+        Scaffold(
+          body: ListView(
+            children: [
+              SpaceCard(id: space.id),
+              const SizedBox(height: 3000),
+            ],
+          ),
+        ),
+        const RouteSettings(name: '/'),
+        client: x,
+      );
+
+      await tester.drag(find.byType(ListView), const Offset(0, -2500));
+      await tester.pump();
+      expect(find.byType(SpaceCard), findsNothing, reason: 'The feed drops the card once it is far off screen');
+      await tester.drag(find.byType(ListView), const Offset(0, 2500));
+      await tester.pump();
+
+      expect(find.text(space.title), findsOneWidget, reason: 'The card should show its space in the first frame');
+      expect(
+        find.byType(CircularProgressIndicator),
+        findsNothing,
+        reason: 'A loading card has another height, which makes the feed jump while scrolling up',
+      );
+      expect(
+        x.answers.where((answer) => answer.fixture?.contains('AudioSpaceById') ?? false),
+        hasLength(1),
+        reason: 'The space was already loaded, so X should not be asked again',
+      );
+    });
+
     testWidgets('Should not offer to listen when there is no recording', (tester) async {
       await _openCard(tester, spaceOf(recordedSpace(hasNoRecording)));
 

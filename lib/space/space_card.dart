@@ -17,7 +17,7 @@ class SpaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Provider(
-      create: (_) => SpaceModel(id)..load(),
+      create: (_) => SpaceModel(id)..loadOnce(),
       dispose: (_, SpaceModel model) => model.destroy(),
       child: Builder(
         builder: (context) {
