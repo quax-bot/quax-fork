@@ -9,3 +9,11 @@ class SpaceModel extends Store<Space> {
 
   Future<void> load() => execute(() => Twitter.getSpace(id));
 }
+
+class SpacePlaylistModel extends Store<String> {
+  final String mediaKey;
+
+  SpacePlaylistModel(this.mediaKey) : super('');
+
+  Future<void> load() => execute(() => Twitter.getSpacePlaylist(mediaKey));
+}

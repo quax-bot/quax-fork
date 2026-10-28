@@ -1229,6 +1229,11 @@ class Twitter {
     final response = await _twitterApi.client.get(uri);
     return Space.fromGraphql(jsonDecode(response.body) as Map<String, dynamic>) ?? (throw NotFoundException());
   }
+
+  static Future<String> getSpacePlaylist(String mediaKey) async {
+    final source = (await getBroadcastDetails(mediaKey))['source'];
+    return source?['noRedirectPlaybackUrl'] as String? ?? source?['location'] as String? ?? (throw NotFoundException());
+  }
 }
 
 class TweetWithCard extends Tweet {

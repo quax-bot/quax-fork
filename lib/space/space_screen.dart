@@ -7,6 +7,7 @@ import 'package:quax/generated/l10n.dart';
 import 'package:quax/profile/profile.dart';
 import 'package:quax/space/space.dart';
 import 'package:quax/space/space_model.dart';
+import 'package:quax/space/space_player.dart';
 import 'package:quax/space/space_status.dart';
 import 'package:quax/ui/errors.dart';
 import 'package:quax/user.dart';
@@ -108,6 +109,7 @@ class _SpaceDetails extends StatelessWidget {
           Text(space.title, style: textTheme.titleLarge!.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           SpaceStatusLine(space: space, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          if (space.canPlay) SpacePlayer(space: space),
           if (space.hosts.isNotEmpty) _ParticipantSection(title: l10n.space_hosts, users: space.hosts),
           if (space.speakers.isNotEmpty) _ParticipantSection(title: l10n.space_speakers, users: space.speakers),
         ],
