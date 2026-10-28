@@ -56,4 +56,15 @@ void main() {
     expect(await _shownText(tester, tweet, hideCardUrls: true), isNot(contains('/i/spaces/')),
         reason: 'The space is in the card, so its link should not be repeated in the text');
   });
+
+  testWidgets('Should not leave the line breaks after a dropped link that opens the text', (tester) async {
+    final tweet = _spaceTweet();
+    final link = tweet.entities!.urls!.firstWhere((url) => url.expandedUrl!.contains('/i/spaces/'));
+    // As https://x.com/ByBenre/status/2114010308008366271 shares its space
+    tweet.fullText = "${link.url}\n\nC'est tout de suite !";
+    tweet.entities!.urls = [link..indices = [0, link.url!.length]];
+
+    expect(await _shownText(tester, tweet, hideCardUrls: true), "C'est tout de suite !",
+        reason: 'The line breaks after the dropped link would show as empty lines above the text');
+  });
 }
