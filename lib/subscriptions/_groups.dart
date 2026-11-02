@@ -82,17 +82,14 @@ class GroupsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Tiles grow taller with the system font size, so that two lines of name still fit
-    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 100,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
-        childAspectRatio: 1 / textScale,
       ),
       itemCount: groups.length + 1,
       itemBuilder: (context, index) => index < groups.length ? GroupTile(group: groups[index]) : const _NewGroupTile(),
@@ -170,19 +167,26 @@ class _GroupGridTile extends StatelessWidget {
           onLongPress: onLongPress,
           child: Padding(
             padding: const EdgeInsets.all(6),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 22, color: foreground),
-                const SizedBox(height: 4),
-                Flexible(
-                  child: Text(label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(color: foreground, height: 1.25)),
+            // With a large system font, the content shrinks so that the tile stays square
+            child: LayoutBuilder(
+              builder: (context, box) => FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(
+                  width: box.maxWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 22, color: foreground),
+                      const SizedBox(height: 4),
+                      Text(label,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: foreground, height: 1.25)),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
