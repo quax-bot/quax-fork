@@ -204,7 +204,7 @@ class _GroupEditorBody extends StatelessWidget {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
             // Brought to the top, so that the results show above the keyboard
             child: Builder(
               builder: (field) => CompactSearchField(
@@ -232,7 +232,7 @@ class _GroupEditorBody extends StatelessWidget {
     return [
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Text(title, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary)),
         ),
       ),
