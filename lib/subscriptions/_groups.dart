@@ -133,6 +133,7 @@ class _NewGroupTile extends StatelessWidget {
       icon: Icons.add,
       label: L10n.of(context).new_group,
       foreground: colors.primary,
+      border: BorderSide(color: colors.outlineVariant),
       onTap: () => openGroupEditor(context),
     );
   }
@@ -143,6 +144,7 @@ class _Tile extends StatelessWidget {
   final String label;
   final Color? background;
   final Color foreground;
+  final BorderSide border;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
@@ -151,6 +153,7 @@ class _Tile extends StatelessWidget {
       required this.label,
       this.background,
       required this.foreground,
+      this.border = BorderSide.none,
       required this.onTap,
       this.onLongPress});
 
@@ -160,7 +163,7 @@ class _Tile extends StatelessWidget {
       dimension: _tileSize,
       child: Material(
         color: background ?? Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: border),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
