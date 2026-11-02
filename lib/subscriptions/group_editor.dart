@@ -112,7 +112,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
       leading: IconButton(icon: const Icon(Icons.close), tooltip: l10n.close, onPressed: () => Navigator.maybePop(context)),
       title: Text(state.draft.id == null ? l10n.new_group : state.original.name),
       actions: [
-        FilledButton(onPressed: state.closing ? null : _save, child: Text(l10n.save)),
+        FilledButton(onPressed: state.closing || !state.dirty ? null : _save, child: Text(l10n.save)),
         if (state.draft.id == null)
           const SizedBox(width: 12)
         else

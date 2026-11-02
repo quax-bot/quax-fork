@@ -101,7 +101,7 @@ void main() {
     expect(appClosed, isTrue, reason: 'Once the search is closed, back should reach the app again');
   });
 
-  testWidgets('Should not move a member of the group while it is unticked in the editor', (tester) async {
+  testWidgets('Should not move a member of the group while it is unticked, and allow saving only then', (tester) async {
     tester.view.physicalSize = const Size(800, 2000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -118,6 +118,8 @@ void main() {
 
     double top(String name) => tester.getTopLeft(find.text(name)).dy;
     expect(top('zoe'), lessThan(top('alice')), reason: 'The members of the group should come first (#282)');
+    FilledButton save() => tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Save'));
+    expect(save().onPressed, isNull, reason: 'There is nothing to save before a change');
 
     await tester.tap(find.text('zoe'));
     await tester.pump();
@@ -125,5 +127,6 @@ void main() {
     expect(top('zoe'), lessThan(top('alice')), reason: 'Unticking a member should not move it before saving');
     expect(tester.widget<CheckboxListTile>(find.widgetWithText(CheckboxListTile, 'zoe')).value, isFalse,
         reason: 'The member should be unticked');
+    expect(save().onPressed, isNotNull, reason: 'The change can be saved');
   });
 }
