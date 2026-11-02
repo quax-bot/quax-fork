@@ -164,10 +164,11 @@ class _GroupChoice extends StatelessWidget {
     );
   }
 
-  /// Reads the members again, as a quick second tap comes before the sheet shows the first one.
+  /// Puts the whole selection in the group, or takes it out when it is all there.
   Future<void> _toggle(BuildContext context, List<String> selectedIds) async {
     final groups = context.read<GroupsModel>();
     final memberships = context.read<GroupMembershipsModel>();
+    // Read again rather than from the build: a quick second tap comes before the sheet shows the first one
     final members = memberships.state[group.id] ?? const {};
     await (selectedIds.every(members.contains)
         ? groups.removeMembers(group.id, selectedIds)

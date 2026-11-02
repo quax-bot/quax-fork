@@ -70,7 +70,6 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     await prefs.set(optionSubscriptionOrderCustom, '');
   }
 
-  /// Shows the new order at once, before it is stored.
   Future<void> _showAndStoreOrder(SubscriptionOrder order) async {
     update(order.apply(state));
     await _storeOrder(order);
