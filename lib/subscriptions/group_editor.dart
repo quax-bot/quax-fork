@@ -192,7 +192,7 @@ class _GroupEditorBody extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _Identity(model: model, state: state, nameController: nameController)),
-        const SliverToBoxAdapter(child: Divider(indent: 16, endIndent: 16, height: 32)),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
         SliverToBoxAdapter(
           child: ListTile(
             title: Text(l10n.members, style: Theme.of(context).textTheme.titleMedium),
@@ -416,9 +416,11 @@ class _IconChoices extends StatelessWidget {
               ),
             );
           }),
-          IconButton.outlined(
+          IconButton(
             tooltip: L10n.of(context).pick_an_icon,
             style: IconButton.styleFrom(
+              backgroundColor: colors.surfaceContainerHigh,
+              foregroundColor: colors.onSurfaceVariant,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               fixedSize: const Size(48, 48),
             ),
