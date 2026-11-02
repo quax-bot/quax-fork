@@ -185,7 +185,7 @@ class _SubscriptionsBody extends StatelessWidget {
       SliverToBoxAdapter(
         child: GroupsHeader(collapsed: collapsed, onToggleCollapsed: page.toggleGroupsCollapsed),
       ),
-      if (!collapsed) SliverToBoxAdapter(child: GroupsCarousel(groups: visible)),
+      if (!collapsed) SliverToBoxAdapter(child: GroupsGrid(groups: visible)),
     ];
   }
 

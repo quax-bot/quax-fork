@@ -229,12 +229,14 @@ class KindFilters extends StatelessWidget {
           label: Text(l10n.label_with_count(label, count)),
           labelStyle: Theme.of(context).textTheme.labelMedium,
           labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+          // Keeps the spacing around the chips to the padding below
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           selected: chosen == kind,
           onSelected: (_) => onChosen(kind),
         );
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
       child: Wrap(
         spacing: 8,
         children: [

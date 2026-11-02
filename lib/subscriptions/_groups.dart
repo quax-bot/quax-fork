@@ -75,28 +75,27 @@ class SectionTitle extends StatelessWidget {
   }
 }
 
-class GroupsCarousel extends StatelessWidget {
+class GroupsGrid extends StatelessWidget {
   final List<SubscriptionGroup> groups;
 
-  const GroupsCarousel({super.key, required this.groups});
+  const GroupsGrid({super.key, required this.groups});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: _tileSize + 12,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
-        itemCount: groups.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) =>
-            index < groups.length ? GroupTile(group: groups[index]) : const _NewGroupTile(),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 100,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
       ),
+      itemCount: groups.length + 1,
+      itemBuilder: (context, index) => index < groups.length ? GroupTile(group: groups[index]) : const _NewGroupTile(),
     );
   }
 }
-
-const double _tileSize = 84;
 
 /// Opens the feed of the group, or its editor on a long press.
 class GroupTile extends StatelessWidget {
@@ -159,9 +158,7 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: _tileSize,
-      child: Material(
+    return Material(
         color: background ?? Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: border),
         clipBehavior: Clip.antiAlias,
@@ -184,7 +181,6 @@ class _Tile extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }
