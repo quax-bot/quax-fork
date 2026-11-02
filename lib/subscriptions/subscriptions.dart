@@ -110,7 +110,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       title: Text(l10n.subscriptions),
       actions: [
         IconButton(icon: const Icon(Icons.search), tooltip: l10n.search_your_subscriptions, onPressed: _page.openSearch),
-        IconButton(icon: const Icon(Icons.download), tooltip: l10n.import_subscriptions, onPressed: () => openImport(context)),
+        IconButton(icon: const Icon(Icons.input), tooltip: l10n.import_subscriptions, onPressed: () => openImport(context)),
         settings,
       ],
     );
@@ -243,7 +243,7 @@ class _SubscriptionsBody extends StatelessWidget {
     return EmptySubscriptions(
       icon: Icons.inbox_outlined,
       message: l10n.no_subscriptions_try_searching_or_importing_some,
-      actionIcon: Icons.download,
+      actionIcon: Icons.input,
       actionLabel: l10n.import_subscriptions,
       onAction: () => openImport(context),
     );
