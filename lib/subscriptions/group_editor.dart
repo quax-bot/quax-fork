@@ -419,8 +419,7 @@ class _IconChoices extends StatelessWidget {
           IconButton(
             tooltip: L10n.of(context).pick_an_icon,
             style: IconButton.styleFrom(
-              backgroundColor: colors.surfaceContainerHigh,
-              foregroundColor: colors.onSurfaceVariant,
+              foregroundColor: colors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               fixedSize: const Size(48, 48),
             ),
