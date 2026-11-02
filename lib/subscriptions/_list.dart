@@ -227,7 +227,6 @@ class KindFilters extends StatelessWidget {
     final counts = countByKind(searched);
     Widget chip(String label, int count, SubscriptionKind? kind) => FilterChip(
           label: Text(l10n.label_with_count(label, count)),
-          visualDensity: VisualDensity.compact,
           labelStyle: Theme.of(context).textTheme.labelMedium,
           labelPadding: const EdgeInsets.symmetric(horizontal: 2),
           selected: chosen == kind,

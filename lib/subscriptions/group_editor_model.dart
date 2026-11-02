@@ -12,18 +12,24 @@ class GroupDraft {
   final Color? color;
   final Set<String> members;
 
-  const GroupDraft({required this.id, required this.name, required this.icon, required this.color, required this.members});
+  const GroupDraft({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.color,
+    required this.members,
+  });
 
   factory GroupDraft.of(SubscriptionGroupEdit group) =>
       GroupDraft(id: group.id, name: group.name, icon: group.icon, color: group.color, members: {...group.members});
 
   GroupDraft copyWith({String? name, String? icon, Color? Function()? color, Set<String>? members}) => GroupDraft(
-        id: id,
-        name: name ?? this.name,
-        icon: icon ?? this.icon,
-        color: color == null ? this.color : color(),
-        members: members ?? this.members,
-      );
+    id: id,
+    name: name ?? this.name,
+    icon: icon ?? this.icon,
+    color: color == null ? this.color : color(),
+    members: members ?? this.members,
+  );
 
   bool sameAs(GroupDraft other) =>
       name == other.name &&
@@ -43,29 +49,38 @@ class GroupEditorState {
   final SubscriptionKind? kind;
   final bool showNameError;
   final bool closing;
+  final bool allColors;
 
-  const GroupEditorState(
-      {required this.original,
-      required this.draft,
-      required this.subscriptions,
-      this.query = '',
-      this.kind,
-      this.showNameError = false,
-      this.closing = false});
+  const GroupEditorState({
+    required this.original,
+    required this.draft,
+    required this.subscriptions,
+    this.query = '',
+    this.kind,
+    this.showNameError = false,
+    this.closing = false,
+    this.allColors = false,
+  });
 
   bool get dirty => !draft.sameAs(original);
 
-  GroupEditorState copyWith(
-          {GroupDraft? draft, String? query, SubscriptionKind? Function()? kind, bool? showNameError, bool? closing}) =>
-      GroupEditorState(
-        original: original,
-        draft: draft ?? this.draft,
-        subscriptions: subscriptions,
-        query: query ?? this.query,
-        kind: kind == null ? this.kind : kind(),
-        showNameError: showNameError ?? this.showNameError,
-        closing: closing ?? this.closing,
-      );
+  GroupEditorState copyWith({
+    GroupDraft? draft,
+    String? query,
+    SubscriptionKind? Function()? kind,
+    bool? showNameError,
+    bool? closing,
+    bool? allColors,
+  }) => GroupEditorState(
+    original: original,
+    draft: draft ?? this.draft,
+    subscriptions: subscriptions,
+    query: query ?? this.query,
+    kind: kind == null ? this.kind : kind(),
+    showNameError: showNameError ?? this.showNameError,
+    closing: closing ?? this.closing,
+    allColors: allColors ?? this.allColors,
+  );
 }
 
 /// Null until the group is loaded.
@@ -78,8 +93,7 @@ class GroupEditorModel extends Store<GroupEditorState?> {
   Future<GroupEditorState> load(String? id, Set<String> initialMembers, List<Subscription> subscriptions) async {
     final group = GroupDraft.of(await groups.loadGroupEdit(id));
     final draft = id == null ? group.copyWith(members: initialMembers) : group;
-    return GroupEditorState(
-        original: draft, draft: draft, subscriptions: [...subscriptions]..sort(compareNames));
+    return GroupEditorState(original: draft, draft: draft, subscriptions: [...subscriptions]..sort(compareNames));
   }
 
   void _edit(GroupEditorState Function(GroupEditorState state) change) {
@@ -95,14 +109,16 @@ class GroupEditorModel extends Store<GroupEditorState?> {
 
   void pickColor(Color? color) => _edit((s) => s.copyWith(draft: s.draft.copyWith(color: () => color)));
 
+  void showAllColors() => _edit((s) => s.copyWith(allColors: true));
+
   void search(String query) => _edit((s) => s.copyWith(query: query));
 
   void showKind(SubscriptionKind? kind) => _edit((s) => s.copyWith(kind: () => kind));
 
   void toggleMember(String id) => _edit((s) {
-        final members = s.draft.members.contains(id) ? (s.draft.members.toSet()..remove(id)) : {...s.draft.members, id};
-        return s.copyWith(draft: s.draft.copyWith(members: members));
-      });
+    final members = s.draft.members.contains(id) ? (s.draft.members.toSet()..remove(id)) : {...s.draft.members, id};
+    return s.copyWith(draft: s.draft.copyWith(members: members));
+  });
 
   /// Returns false when the group has no name, or is already closing.
   Future<bool> save() async {

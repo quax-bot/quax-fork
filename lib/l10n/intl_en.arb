@@ -73,6 +73,10 @@
   "@close": {},
   "color": "Color",
   "@color": {},
+  "color_and_icon": "Color and icon",
+  "@color_and_icon": {
+    "description": "Tooltip of the button that opens the choice of a group's color and icon"
+  },
   "color_number": "Color {index}",
   "@color_number": {
     "description": "Screen reader label of a color swatch in the group editor"
@@ -459,12 +463,14 @@
   "@media_grid_columns": {},
   "media_grid_columns_description": "Number of columns in the media grid",
   "@media_grid_columns_description": {},
-  "members": "Members",
-  "@members": {},
   "missing_page": "Missing page",
   "@missing_page": {},
   "more": "More",
   "@more": {},
+  "more_colors": "More colors",
+  "@more_colors": {
+    "description": "Tooltip of the button that shows every color a group can take"
+  },
   "more_info": "More info",
   "@more_info": {},
   "more_options": "More options",
@@ -860,6 +866,18 @@
   "@search_web_archive": {},
   "search_your_subscriptions": "Search your subscriptions",
   "@search_your_subscriptions": {},
+  "section_with_count": "{label} · {count}",
+  "@section_with_count": {
+    "description": "Title of a section of a list followed by how many items it holds",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "select": "Select",
   "@select": {},
   "select_subscription": "Select {name}",

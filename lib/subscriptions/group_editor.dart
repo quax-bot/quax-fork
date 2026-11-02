@@ -17,19 +17,10 @@ import 'package:quax/subscriptions/subscription_kind.dart';
 import 'package:quax/subscriptions/subscriptions_page_model.dart';
 import 'package:quax/subscriptions/users_model.dart';
 
-const _palette = <Color>[
-  Colors.red,
-  Colors.pink,
-  Colors.purple,
-  Colors.indigo,
-  Colors.blue,
-  Colors.teal,
-  Colors.green,
-  Colors.amber,
-  Colors.orange,
-  Colors.brown,
-  Colors.blueGrey,
-];
+/// The default color, then the color of each Material hue.
+final List<Color?> _palette = [null, ...Colors.primaries];
+
+final List<Color?> _quickColors = [null, Colors.red, Colors.purple, Colors.blue, Colors.green, Colors.orange];
 
 final _quickIcons = [
   defaultGroupIcon,
@@ -43,6 +34,7 @@ final _quickIcons = [
     'music_note',
     'sports_esports',
     'public',
+    'restaurant',
   ].map((key) => jsonEncode({'pack': 'material', 'key': key})),
 ];
 
@@ -204,23 +196,15 @@ class _GroupEditorBody extends StatelessWidget {
     // The members of the group as it opened stay first, so that ticking a box never moves a row
     final wereIn = shown.where((s) => state.original.members.contains(s.id)).toList();
     final others = shown.where((s) => !state.original.members.contains(s.id)).toList();
-    final members = subscriptions.where((s) => state.draft.members.contains(s.id));
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: _Identity(model: model, state: state, nameController: nameController),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        SliverToBoxAdapter(
-          child: ListTile(
-            title: Text(l10n.members, style: Theme.of(context).textTheme.titleMedium),
-            subtitle: Text(membersSummary(context, members)),
-          ),
-        ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             // Brought to the top, so that the results show above the keyboard
             child: Builder(
               builder: (field) => CompactSearchField(
@@ -233,7 +217,7 @@ class _GroupEditorBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: KindFilters(searched: searched, chosen: state.kind, onChosen: model.showKind),
         ),
-        ..._section(context, l10n.in_the_group, wereIn),
+        ..._section(context, l10n.section_with_count(l10n.in_the_group, state.draft.members.length), wereIn),
         ..._section(context, l10n.other_subscriptions, others),
         SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 16)),
       ],
@@ -248,7 +232,7 @@ class _GroupEditorBody extends StatelessWidget {
     return [
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 16, bottom: 4),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(title, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary)),
         ),
       ),
@@ -284,46 +268,138 @@ class _Identity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
-    final tone = groupTone(context, state.draft.color);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(color: tone.background, borderRadius: BorderRadius.circular(20)),
-                child: Icon(deserializeIconData(state.draft.icon), size: 32, color: tone.foreground),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextField(
-                  controller: nameController,
-                  onChanged: model.rename,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: l10n.name,
-                    border: const OutlineInputBorder(),
-                    errorText: state.showNameError ? l10n.please_enter_a_name : null,
-                  ),
-                ),
-              ),
-            ],
+          _AppearanceButton(
+            tone: groupTone(context, state.draft.color),
+            icon: state.draft.icon,
+            onPressed: () => _openAppearance(context, model),
           ),
-          const SizedBox(height: 20),
-          _Label(l10n.color),
-          _ColorChoices(selected: state.draft.color, onPicked: model.pickColor),
-          const SizedBox(height: 16),
-          _Label(l10n.icon),
-          _IconChoices(selected: state.draft.icon, tone: tone, onPicked: model.pickIcon),
+          const SizedBox(width: 16),
+          Expanded(
+            child: TextField(
+              controller: nameController,
+              onChanged: model.rename,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: l10n.name,
+                border: const OutlineInputBorder(),
+                errorText: state.showNameError ? l10n.please_enter_a_name : null,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
+
+/// The group's icon on its color. A small palette badge says it can be changed.
+class _AppearanceButton extends StatelessWidget {
+  final GroupTone tone;
+  final String icon;
+  final VoidCallback onPressed;
+
+  const _AppearanceButton({required this.tone, required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final shape = BorderRadius.circular(18);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Tooltip(
+          message: L10n.of(context).color_and_icon,
+          child: Material(
+            color: tone.background,
+            borderRadius: shape,
+            child: InkWell(
+              borderRadius: shape,
+              onTap: onPressed,
+              child: SizedBox.square(
+                dimension: 56,
+                child: Icon(deserializeIconData(icon), size: 28, color: tone.foreground),
+              ),
+            ),
+          ),
+        ),
+        PositionedDirectional(
+          end: -4,
+          bottom: -4,
+          child: IgnorePointer(
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerHigh,
+                shape: BoxShape.circle,
+                border: Border.all(color: colors.surface, width: 2),
+              ),
+              child: Icon(Icons.palette_outlined, size: 14, color: colors.onSurfaceVariant),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+void _openAppearance(BuildContext context, GroupEditorModel model) => showModalBottomSheet<void>(
+  context: context,
+  showDragHandle: true,
+  isScrollControlled: true,
+  builder: (_) => ScopedBuilder<GroupEditorModel, GroupEditorState?>(
+    store: model,
+    onState: (context, state) => state == null ? const SizedBox.shrink() : _Appearance(model: model, state: state),
+  ),
+);
+
+class _Appearance extends StatelessWidget {
+  final GroupEditorModel model;
+  final GroupEditorState state;
+
+  const _Appearance({required this.model, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, MediaQuery.paddingOf(context).bottom + 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _Label(l10n.color),
+          _ColorChoices(
+            selected: state.draft.color,
+            all: state.allColors,
+            onPicked: model.pickColor,
+            onMore: model.showAllColors,
+          ),
+          const SizedBox(height: 16),
+          _Label(l10n.icon),
+          _IconChoices(
+            selected: state.draft.icon,
+            tone: groupTone(context, state.draft.color),
+            onPicked: model.pickIcon,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _grid(int columns, List<Widget> children) => GridView.count(
+  crossAxisCount: columns,
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  padding: EdgeInsets.zero,
+  mainAxisSpacing: 4,
+  children: children.map((child) => Center(child: child)).toList(),
+);
 
 class _Label extends StatelessWidget {
   final String text;
@@ -342,49 +418,73 @@ class _Label extends StatelessWidget {
 
 class _ColorChoices extends StatelessWidget {
   final Color? selected;
+  final bool all;
   final ValueChanged<Color?> onPicked;
+  final VoidCallback onMore;
 
-  const _ColorChoices({required this.selected, required this.onPicked});
+  const _ColorChoices({required this.selected, required this.all, required this.onPicked, required this.onMore});
+
+  bool _isSelected(Color? color) => color?.toARGB32() == selected?.toARGB32();
 
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
-    final palette = <Color?>[
-      null,
-      ..._palette,
-      if (selected != null && !_palette.any((c) => c.toARGB32() == selected!.toARGB32())) selected,
-    ];
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: palette.indexed.map((entry) {
-          final (index, color) = entry;
-          final tone = groupTone(context, color);
-          final isSelected = color?.toARGB32() == selected?.toARGB32();
-          return Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: Semantics(
-              button: true,
-              selected: isSelected,
-              label: color == null ? l10n.default_color : l10n.color_number(index),
-              child: InkResponse(
-                onTap: () => onPicked(color),
-                radius: 24,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: tone.background,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: isSelected ? tone.foreground : Colors.transparent, width: 2),
-                  ),
-                  child: isSelected ? Icon(Icons.check, size: 20, color: tone.foreground) : null,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
+    final colors = Theme.of(context).colorScheme;
+    // A color picked outside the palette, or outside the quick colors, is shown first
+    final shown = all ? _palette : _quickColors;
+    final choices = shown.any(_isSelected) ? shown : [selected, ...shown.take(shown.length - 1)];
+    return _grid(7, [
+      ...choices.map(
+        (color) => _ColorDot(
+          color: color,
+          label: color == null ? l10n.default_color : l10n.color_number(_palette.indexOf(color) + 1),
+          selected: _isSelected(color),
+          onTap: () => onPicked(color),
+        ),
+      ),
+      if (!all)
+        IconButton(
+          tooltip: l10n.more_colors,
+          style: IconButton.styleFrom(
+            foregroundColor: colors.primary,
+            shape: CircleBorder(side: BorderSide(color: colors.outlineVariant)),
+            fixedSize: const Size(44, 44),
+          ),
+          icon: const Icon(Icons.add),
+          onPressed: onMore,
+        ),
+    ]);
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  final Color? color;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ColorDot({required this.color, required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = groupTone(context, color);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 24,
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: tone.background,
+            shape: BoxShape.circle,
+            border: Border.all(color: selected ? tone.foreground : Colors.transparent, width: 2),
+          ),
+          child: selected ? Icon(Icons.check, size: 20, color: tone.foreground) : null,
+        ),
       ),
     );
   }
@@ -431,51 +531,42 @@ class _IconChoices extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final icons = [if (!_quickIcons.contains(selected)) selected, ..._quickIcons];
-    return SizedBox(
-      height: 48,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          ...icons.indexed.map((entry) {
-            final (index, icon) = entry;
-            final isSelected = icon == selected;
-            return Padding(
-              padding: const EdgeInsetsDirectional.only(end: 8),
-              child: IconButton(
-                isSelected: isSelected,
-                style: IconButton.styleFrom(
-                  backgroundColor: isSelected ? tone.background : colors.surfaceContainerHigh,
-                  foregroundColor: isSelected ? tone.foreground : colors.onSurfaceVariant,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  fixedSize: const Size(48, 48),
-                ),
-                icon: Icon(deserializeIconData(icon), semanticLabel: L10n.of(context).icon_number(index + 1)),
-                onPressed: () => onPicked(icon),
-              ),
-            );
-          }),
-          // The icon picker uses Flutter's own material library, so it needs its own theme
-          fm.Theme(
-            data: _pickerTheme(Theme.of(context)),
-            child: Builder(
-              builder: (themed) => IconButton(
-                tooltip: L10n.of(context).pick_an_icon,
-                style: IconButton.styleFrom(
-                  foregroundColor: colors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: colors.outlineVariant),
-                  ),
-                  fixedSize: const Size(48, 48),
-                ),
-                icon: const Icon(Icons.more_horiz),
-                onPressed: () => _pickAnother(themed),
-              ),
-            ),
+    return _grid(6, [
+      ...icons.indexed.map((entry) {
+        final (index, icon) = entry;
+        final isSelected = icon == selected;
+        return IconButton(
+          isSelected: isSelected,
+          style: IconButton.styleFrom(
+            backgroundColor: isSelected ? tone.background : colors.surfaceContainerHigh,
+            foregroundColor: isSelected ? tone.foreground : colors.onSurfaceVariant,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            fixedSize: const Size(48, 48),
           ),
-        ],
+          icon: Icon(deserializeIconData(icon), semanticLabel: L10n.of(context).icon_number(index + 1)),
+          onPressed: () => onPicked(icon),
+        );
+      }),
+      // The icon picker uses Flutter's own material library, so it needs its own theme
+      fm.Theme(
+        data: _pickerTheme(Theme.of(context)),
+        child: Builder(
+          builder: (themed) => IconButton(
+            tooltip: L10n.of(context).pick_an_icon,
+            style: IconButton.styleFrom(
+              foregroundColor: colors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(color: colors.outlineVariant),
+              ),
+              fixedSize: const Size(48, 48),
+            ),
+            icon: const Icon(Icons.more_horiz),
+            onPressed: () => _pickAnother(themed),
+          ),
+        ),
       ),
-    );
+    ]);
   }
 }
 
