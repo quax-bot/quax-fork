@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart' as fm;
 import 'package:flutter_iconpicker/Models/configuration.dart';
 import 'package:flutter_iconpicker/flutter_iconpicker.dart';
 import 'package:flutter_triple/flutter_triple.dart';
@@ -32,15 +33,27 @@ const _palette = <Color>[
 
 final _quickIcons = [
   defaultGroupIcon,
-  ...['memory', 'newspaper', 'sports_soccer', 'photo_camera', 'palette', 'science', 'music_note', 'sports_esports', 'public']
-      .map((key) => jsonEncode({'pack': 'material', 'key': key})),
+  ...[
+    'memory',
+    'newspaper',
+    'sports_soccer',
+    'photo_camera',
+    'palette',
+    'science',
+    'music_note',
+    'sports_esports',
+    'public',
+  ].map((key) => jsonEncode({'pack': 'material', 'key': key})),
 ];
 
 /// A new group starts with [initialMembers]. Returns whether the group was saved.
 Future<bool> openGroupEditor(BuildContext context, {String? id, Set<String> initialMembers = const {}}) async =>
     await Navigator.push<bool>(
       context,
-      MaterialPageRoute(fullscreenDialog: true, builder: (_) => GroupEditorScreen(id: id, initialMembers: initialMembers)),
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => GroupEditorScreen(id: id, initialMembers: initialMembers),
+      ),
     ) ??
     false;
 
@@ -109,7 +122,11 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
   AppBar _appBar(BuildContext context, GroupEditorState state) {
     final l10n = L10n.of(context);
     return AppBar(
-      leading: IconButton(icon: const Icon(Icons.close), tooltip: l10n.close, onPressed: () => Navigator.maybePop(context)),
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        tooltip: l10n.close,
+        onPressed: () => Navigator.maybePop(context),
+      ),
       title: Text(state.draft.id == null ? l10n.new_group : state.original.name),
       actions: [
         FilledButton(onPressed: state.closing || !state.dirty ? null : _save, child: Text(l10n.save)),
@@ -191,7 +208,9 @@ class _GroupEditorBody extends StatelessWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(child: _Identity(model: model, state: state, nameController: nameController)),
+        SliverToBoxAdapter(
+          child: _Identity(model: model, state: state, nameController: nameController),
+        ),
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
         SliverToBoxAdapter(
           child: ListTile(
@@ -211,7 +230,9 @@ class _GroupEditorBody extends StatelessWidget {
             ),
           ),
         ),
-        SliverToBoxAdapter(child: KindFilters(searched: searched, chosen: state.kind, onChosen: model.showKind)),
+        SliverToBoxAdapter(
+          child: KindFilters(searched: searched, chosen: state.kind, onChosen: model.showKind),
+        ),
         ..._section(context, l10n.in_the_group, wereIn),
         ..._section(context, l10n.other_subscriptions, others),
         SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 16)),
@@ -239,7 +260,11 @@ class _GroupEditorBody extends StatelessWidget {
             key: ValueKey(subscriptionKey(subscription)),
             secondary: SubscriptionAvatar(subscription: subscription),
             title: Text(subscription.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(subscriptionLine(L10n.of(context), subscription), maxLines: 1, overflow: TextOverflow.ellipsis),
+            subtitle: Text(
+              subscriptionLine(L10n.of(context), subscription),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             value: state.draft.members.contains(subscription.id),
             onChanged: (_) => model.toggleMember(subscription.id),
           );
@@ -374,14 +399,27 @@ class _IconChoices extends StatelessWidget {
 
   Future<void> _pickAnother(BuildContext context) async {
     final l10n = L10n.of(context);
+    final theme = Theme.of(context);
     final icon = await showIconPicker(
       context,
       configuration: SinglePickerConfiguration(
         iconPackModes: [IconPack.material],
-        title: Text(l10n.pick_an_icon),
-        closeChild: Text(l10n.close),
+        preSelected: _pickerIcon(selected),
+        title: Text(l10n.icon, style: theme.textTheme.headlineSmall),
+        closeChild: Text(l10n.close, style: TextStyle(color: theme.colorScheme.primary)),
         searchHintText: l10n.search,
         noResultsText: l10n.no_results_for,
+        iconPickerShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: theme.colorScheme.surfaceContainerHigh,
+        iconSize: 38,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        iconBuilder: (context, icon, isSelected, onTap) => _PickerIcon(
+          icon: icon,
+          selected: isSelected,
+          tone: tone,
+          onTap: () => onTap(icon, onSelected: () => Navigator.pop(context, icon)),
+        ),
       ),
     );
     if (icon != null) {
@@ -416,19 +454,74 @@ class _IconChoices extends StatelessWidget {
               ),
             );
           }),
-          IconButton(
-            tooltip: L10n.of(context).pick_an_icon,
-            style: IconButton.styleFrom(
-              foregroundColor: colors.primary,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14), side: BorderSide(color: colors.outlineVariant)),
-              fixedSize: const Size(48, 48),
+          // The icon picker uses Flutter's own material library, so it needs its own theme
+          fm.Theme(
+            data: _pickerTheme(Theme.of(context)),
+            child: Builder(
+              builder: (themed) => IconButton(
+                tooltip: L10n.of(context).pick_an_icon,
+                style: IconButton.styleFrom(
+                  foregroundColor: colors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: colors.outlineVariant),
+                  ),
+                  fixedSize: const Size(48, 48),
+                ),
+                icon: const Icon(Icons.more_horiz),
+                onPressed: () => _pickAnother(themed),
+              ),
             ),
-            icon: const Icon(Icons.more_horiz),
-            onPressed: () => _pickAnother(context),
           ),
         ],
       ),
     );
   }
+}
+
+IconPickerIcon? _pickerIcon(String serialized) {
+  try {
+    return deserializeIcon(Map<String, dynamic>.from(jsonDecode(serialized) as Map));
+  } catch (_) {
+    return null;
+  }
+}
+
+class _PickerIcon extends StatelessWidget {
+  final IconPickerIcon icon;
+  final bool selected;
+  final GroupTone tone;
+  final VoidCallback onTap;
+
+  const _PickerIcon({required this.icon, required this.selected, required this.tone, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? tone.background : Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Icon(
+          icon.data,
+          size: 26,
+          semanticLabel: icon.name.replaceAll('_', ' '),
+          color: selected ? tone.foreground : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+fm.ThemeData _pickerTheme(ThemeData theme) {
+  final colors = theme.colorScheme;
+  return fm.ThemeData(
+    colorScheme: fm.ColorScheme.fromSeed(seedColor: colors.primary, brightness: theme.brightness),
+    inputDecorationTheme: fm.InputDecorationTheme(
+      filled: true,
+      fillColor: colors.surfaceContainerHighest,
+      border: fm.OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+    ),
+  );
 }

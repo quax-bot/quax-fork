@@ -70,15 +70,15 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       store: context.read<SubscriptionsModel>(),
       onError: (_, e) => Scaffold(
         body: FullPageErrorWidget(
-            error: e, stackTrace: null, prefix: (l10n) => l10n.unable_to_refresh_the_subscriptions),
+          error: e,
+          stackTrace: null,
+          prefix: (l10n) => l10n.unable_to_refresh_the_subscriptions,
+        ),
       ),
       onState: (_, subscriptions) => ScopedBuilder<SubscriptionsPageModel, SubscriptionsPageState>(
         store: _page,
         onState: (_, page) => Scaffold(
-          appBar: _AnimatedAppBar(
-            mode: page.selecting ? 'selection' : (page.searching ? 'search' : 'title'),
-            child: _appBar(context, page, subscriptions),
-          ),
+          appBar: _appBar(context, page, subscriptions),
           body: _SubscriptionsBody(
             page: _page,
             pageState: page,
@@ -112,8 +112,16 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     return AppBar(
       title: Text(l10n.subscriptions),
       actions: [
-        IconButton(icon: const Icon(Icons.search), tooltip: l10n.search_your_subscriptions, onPressed: _page.openSearch),
-        IconButton(icon: const Icon(Icons.input), tooltip: l10n.import_subscriptions, onPressed: () => openImport(context)),
+        IconButton(
+          icon: const Icon(Icons.search),
+          tooltip: l10n.search_your_subscriptions,
+          onPressed: _page.openSearch,
+        ),
+        IconButton(
+          icon: const Icon(Icons.input),
+          tooltip: l10n.import_subscriptions,
+          onPressed: () => openImport(context),
+        ),
         settings,
       ],
     );
@@ -126,8 +134,12 @@ class _SubscriptionsBody extends StatelessWidget {
   final List<Subscription> subscriptions;
   final ScrollController scrollController;
 
-  const _SubscriptionsBody(
-      {required this.page, required this.pageState, required this.subscriptions, required this.scrollController});
+  const _SubscriptionsBody({
+    required this.page,
+    required this.pageState,
+    required this.subscriptions,
+    required this.scrollController,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -190,8 +202,12 @@ class _SubscriptionsBody extends StatelessWidget {
     );
   }
 
-  Widget _rows(BuildContext context, List<Subscription> shown, Map<String, List<SubscriptionGroup>> groupsOf,
-      bool canReorder) {
+  Widget _rows(
+    BuildContext context,
+    List<Subscription> shown,
+    Map<String, List<SubscriptionGroup>> groupsOf,
+    bool canReorder,
+  ) {
     final model = context.read<SubscriptionsModel>();
     Widget row(int index) {
       final subscription = shown[index];
@@ -204,8 +220,9 @@ class _SubscriptionsBody extends StatelessWidget {
         onToggleSelected: () => page.toggleSelected(subscription),
         dragIndex: canReorder ? index : null,
         onMoveUp: canReorder && index > 0 ? () => model.moveSubscription(shown, index, index - 1) : null,
-        onMoveDown:
-            canReorder && index < shown.length - 1 ? () => model.moveSubscription(shown, index, index + 1) : null,
+        onMoveDown: canReorder && index < shown.length - 1
+            ? () => model.moveSubscription(shown, index, index + 1)
+            : null,
       );
     }
 
@@ -239,8 +256,11 @@ class _SubscriptionsBody extends StatelessWidget {
         message: l10n.no_saved_searches,
         actionIcon: Icons.search,
         actionLabel: l10n.search,
-        onAction: () => Navigator.pushNamed(context, routeSearch,
-            arguments: SearchArguments(SearchTab.top, focusInputOnOpen: true)),
+        onAction: () => Navigator.pushNamed(
+          context,
+          routeSearch,
+          arguments: SearchArguments(SearchTab.top, focusInputOnOpen: true),
+        ),
       );
     }
     return EmptySubscriptions(
@@ -254,43 +274,14 @@ class _SubscriptionsBody extends StatelessWidget {
 }
 
 Map<String, List<SubscriptionGroup>> _groupsBySubscription(
-        List<SubscriptionGroup> groups, Map<String, Set<String>> members) =>
-    groups.fold({}, (bySubscription, group) {
-      for (final id in members[group.id] ?? const <String>{}) {
-        bySubscription.putIfAbsent(id, () => []).add(group);
-      }
-      return bySubscription;
-    });
+  List<SubscriptionGroup> groups,
+  Map<String, Set<String>> members,
+) => groups.fold({}, (bySubscription, group) {
+  for (final id in members[group.id] ?? const <String>{}) {
+    bySubscription.putIfAbsent(id, () => []).add(group);
+  }
+  return bySubscription;
+});
 
 void openImport(BuildContext context) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionImportScreen()));
-
-/// Switches between the title, search and selection bars with a short slide from the search button.
-class _AnimatedAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String mode;
-  final PreferredSizeWidget child;
-
-  const _AnimatedAppBar({required this.mode, required this.child});
-
-  @override
-  Size get preferredSize => child.preferredSize;
-
-  @override
-  Widget build(BuildContext context) {
-    final animate = PrefService.of(context).get(optionDisableAnimations) != true;
-    final fromSearchButton = Directionality.of(context) == TextDirection.rtl ? -0.08 : 0.08;
-    return AnimatedSwitcher(
-      duration: animate ? const Duration(milliseconds: 200) : Duration.zero,
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: Tween(begin: Offset(fromSearchButton, 0), end: Offset.zero).animate(animation),
-          child: child,
-        ),
-      ),
-      child: KeyedSubtree(key: ValueKey(mode), child: child),
-    );
-  }
-}
