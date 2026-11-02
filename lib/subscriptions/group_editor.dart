@@ -420,7 +420,8 @@ class _IconChoices extends StatelessWidget {
             tooltip: L10n.of(context).pick_an_icon,
             style: IconButton.styleFrom(
               foregroundColor: colors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14), side: BorderSide(color: colors.outlineVariant)),
               fixedSize: const Size(48, 48),
             ),
             icon: const Icon(Icons.more_horiz),
