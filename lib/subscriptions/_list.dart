@@ -1,3 +1,4 @@
+import 'package:flutter/semantics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
@@ -56,6 +57,8 @@ class SubscriptionRow extends StatelessWidget {
 
   /// Set while the custom order can be changed.
   final int? dragIndex;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   const SubscriptionRow(
       {super.key,
@@ -64,35 +67,53 @@ class SubscriptionRow extends StatelessWidget {
       required this.selected,
       required this.selecting,
       required this.onToggleSelected,
-      this.dragIndex});
+      this.dragIndex,
+      this.onMoveUp,
+      this.onMoveDown});
 
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     final colors = Theme.of(context).colorScheme;
-    return ListTile(
+    return Semantics(
+      customSemanticsActions: {
+        CustomSemanticsAction(label: l10n.move_up): ?onMoveUp,
+        CustomSemanticsAction(label: l10n.move_down): ?onMoveDown,
+      },
+      child: ListTile(
       selected: selected,
       selectedTileColor: colors.secondaryContainer.withValues(alpha: 0.6),
       leading: Semantics(
         button: true,
         selected: selected,
-        label: l10n.select,
+        label: l10n.select_subscription(subscription.name),
+        excludeSemantics: true,
         child: InkResponse(
           onTap: onToggleSelected,
           radius: 24,
-          child: SubscriptionAvatar(subscription: subscription, selected: selected),
+          child: SizedBox.square(
+            dimension: 48,
+            child: Center(child: SubscriptionAvatar(subscription: subscription, selected: selected)),
+          ),
         ),
       ),
       title: _SubscriptionTitle(subscription: subscription),
       subtitle: _SubscriptionSubtitle(subscription: subscription, groups: groups),
       trailing: dragIndex == null
           ? null
-          : ReorderableDragStartListener(index: dragIndex!, child: const Icon(Icons.drag_indicator)),
+          : ReorderableDragStartListener(
+              index: dragIndex!, child: const ExcludeSemantics(child: Icon(Icons.drag_indicator))),
       onTap: selecting ? onToggleSelected : () => openSubscription(context, subscription),
       onLongPress: onToggleSelected,
+      ),
     );
   }
 }
+
+String subscriptionLine(L10n l10n, Subscription subscription) => switch (subscription) {
+      UserSubscription() => '@${subscription.screenName}',
+      SearchSubscription() => l10n.search_term,
+    };
 
 class _SubscriptionTitle extends StatelessWidget {
   final Subscription subscription;
@@ -122,12 +143,19 @@ class _SubscriptionSubtitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
-    final line = subscription is UserSubscription ? '@${subscription.screenName}' : l10n.search_term;
     final hidden = subscription is UserSubscription && !subscription.inFeed;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(hidden ? '$line · ${l10n.hidden_from_main_feed}' : line, maxLines: 1, overflow: TextOverflow.ellipsis),
+        Row(
+          children: [
+            Flexible(child: Text(subscriptionLine(l10n, subscription), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            if (hidden) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.visibility_off_outlined, size: 16, semanticLabel: l10n.hidden_from_main_feed),
+            ],
+          ],
+        ),
         if (groups.isNotEmpty) ...[
           const SizedBox(height: 4),
           GroupTags(groups: groups),
@@ -198,7 +226,7 @@ class KindFilters extends StatelessWidget {
     final l10n = L10n.of(context);
     final counts = countByKind(searched);
     Widget chip(String label, int count, SubscriptionKind? kind) => FilterChip(
-          label: Text('$label $count'),
+          label: Text(l10n.label_with_count(label, count)),
           selected: chosen == kind,
           onSelected: (_) => onChosen(kind),
         );
@@ -246,7 +274,7 @@ class SortControls extends StatelessWidget {
           child: TextButton.icon(
             onPressed: onCycle,
             icon: const Icon(Icons.swap_vert, size: 18),
-            label: Text(label, semanticsLabel: '${l10n.sort_by}: $label'),
+            label: Text(label, semanticsLabel: l10n.sort_by_value(label)),
           ),
         ),
         if (order.sort != SubscriptionSort.custom)

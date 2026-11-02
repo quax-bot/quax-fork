@@ -30,7 +30,11 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     _onSubscriptionsReloaded.remove(key);
   }
 
-  SubscriptionOrder get order => SubscriptionOrder(
+  late SubscriptionOrder _order = _storedOrder();
+
+  SubscriptionOrder get order => _order;
+
+  SubscriptionOrder _storedOrder() => SubscriptionOrder(
         sort: SubscriptionSort.fromPref(prefs.get(optionSubscriptionOrderByField)),
         ascending: prefs.get(optionSubscriptionOrderByAscending),
         custom: decodeCustomOrder(prefs.get(optionSubscriptionOrderCustomKeys)),
@@ -47,58 +51,56 @@ class SubscriptionsModel extends Store<List<Subscription>> {
       final subscriptions = [...users, ...searches];
 
       await _migrateLegacyCustomOrder(subscriptions);
-      return order.apply(subscriptions);
+      return _order.apply(subscriptions);
     });
     for(final callback in _onSubscriptionsReloaded.values) {
       callback();
     }
   }
 
+  /// Older versions stored the custom order as screen names, only while it was the chosen sort.
   Future<void> _migrateLegacyCustomOrder(List<Subscription> subscriptions) async {
     final String legacy = prefs.get(optionSubscriptionOrderCustom) ?? '';
     if (legacy.isEmpty) {
       return;
     }
-    await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(keysOfLegacyCustomOrder(legacy, subscriptions)));
-    await prefs.set(optionSubscriptionOrderByField, SubscriptionSort.custom.pref);
+    await _saveOrder(_order.copyWith(sort: SubscriptionSort.custom, custom: keysOfLegacyCustomOrder(legacy, subscriptions)));
     await prefs.set(optionSubscriptionOrderCustom, '');
   }
 
-  Future<void> _saveOrder({SubscriptionSort? sort, bool? ascending, List<String>? custom}) async {
-    if (sort != null) await prefs.set(optionSubscriptionOrderByField, sort.pref);
-    if (ascending != null) await prefs.set(optionSubscriptionOrderByAscending, ascending);
-    if (custom != null) await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(custom));
+  /// Shows the new order at once, before it is stored.
+  Future<void> _saveOrder(SubscriptionOrder order) async {
+    _order = order;
     update(order.apply(state));
+    await prefs.set(optionSubscriptionOrderByField, order.sort.pref);
+    await prefs.set(optionSubscriptionOrderByAscending, order.ascending);
+    await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(order.custom));
   }
 
-  /// The first custom order is the order shown.
-  Future<void> cycleSort() async {
-    final next = order.sort.next;
-    final startsCustomOrder = next == SubscriptionSort.custom && order.custom.isEmpty;
-    await _saveOrder(sort: next, custom: startsCustomOrder ? state.map(subscriptionKey).toList() : null);
+  /// Switches to the next sort. The custom order starts from the order shown.
+  Future<void> cycleSort() {
+    final next = _order.sort.next;
+    final startsCustomOrder = next == SubscriptionSort.custom && _order.custom.isEmpty;
+    return _saveOrder(_order.copyWith(sort: next, custom: startsCustomOrder ? state.map(subscriptionKey).toList() : null));
   }
 
-  Future<void> reverseOrder() => _saveOrder(ascending: !order.ascending);
+  Future<void> reverseOrder() => _saveOrder(_order.copyWith(ascending: !_order.ascending));
 
-  Future<void> moveSubscription(List<Subscription> visible, int oldIndex, int newIndex) => _saveOrder(
-      custom: reorderedKeys(state.map(subscriptionKey).toList(), visible.map(subscriptionKey).toList(), oldIndex, newIndex));
+  Future<void> moveSubscription(List<Subscription> visible, int oldIndex, int newIndex) => _saveOrder(_order.copyWith(
+      custom: reorderedKeys(state.map(subscriptionKey).toList(), visible.map(subscriptionKey).toList(), oldIndex, newIndex)));
 
   /// Returns what [restore] needs to undo it.
   Future<RemovedSubscriptions> unsubscribeAll(List<Subscription> subscriptions) async {
     final database = await Repository.writable();
-    final ids = subscriptions.map((s) => s.id).toList();
-    if (ids.isEmpty) {
-      return const RemovedSubscriptions([], []);
-    }
-    final memberships = (await database.query(tableSubscriptionGroupMember,
-            where: 'profile_id IN (${List.filled(ids.length, '?').join(',')})', whereArgs: ids))
+    final ids = subscriptions.map((s) => s.id).toSet();
+    final memberships = (await database.query(tableSubscriptionGroupMember))
         .map(SubscriptionGroupMember.fromMap)
+        .where((m) => ids.contains(m.profile))
         .toList();
 
     final batch = database.batch();
     for (final subscription in subscriptions) {
-      final table = subscription is SearchSubscription ? tableSearchSubscription : tableSubscription;
-      batch.delete(table, where: 'id = ?', whereArgs: [subscription.id]);
+      batch.delete(SubscriptionKind.of(subscription).table, where: 'id = ?', whereArgs: [subscription.id]);
       batch.delete(tableSubscriptionGroupMember, where: 'profile_id = ?', whereArgs: [subscription.id]);
     }
     await batch.commit(noResult: true);
@@ -112,8 +114,8 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     final database = await Repository.writable();
     final batch = database.batch();
     for (final subscription in removed.subscriptions) {
-      final table = subscription is SearchSubscription ? tableSearchSubscription : tableSubscription;
-      batch.insert(table, subscription.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
+      batch.insert(SubscriptionKind.of(subscription).table, subscription.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.ignore);
     }
     for (final membership in removed.memberships) {
       batch.insert(tableSubscriptionGroupMember, membership.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
@@ -124,15 +126,13 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     await groupModel.reloadGroups();
   }
 
-  /// Searches are never in the main feed.
+  /// Only accounts can be hidden from the main feed.
   Future<void> setInFeed(Iterable<Subscription> subscriptions, bool inFeed) async {
-    final ids = subscriptions.whereType<UserSubscription>().map((s) => s.id).toList();
-    if (ids.isEmpty) {
-      return;
+    final batch = (await Repository.writable()).batch();
+    for (final account in subscriptions.whereType<UserSubscription>()) {
+      batch.update(tableSubscription, {'in_feed': inFeed ? 1 : 0}, where: 'id = ?', whereArgs: [account.id]);
     }
-    final database = await Repository.writable();
-    await database.update(tableSubscription, {'in_feed': inFeed ? 1 : 0},
-        where: 'id IN (${List.filled(ids.length, '?').join(',')})', whereArgs: ids);
+    await batch.commit(noResult: true);
     await reloadSubscriptions();
   }
 

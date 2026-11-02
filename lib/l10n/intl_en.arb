@@ -73,6 +73,10 @@
   "@close": {},
   "color": "Color",
   "@color": {},
+  "color_number": "Color {index}",
+  "@color_number": {
+    "description": "Screen reader label of a color swatch in the group editor"
+  },
   "community": "Community",
   "@community": {},
   "community_about": "About",
@@ -326,6 +330,10 @@
   "@home": {},
   "icon": "Icon",
   "@icon": {},
+  "icon_number": "Icon {index}",
+  "@icon_number": {
+    "description": "Screen reader label of an icon choice in the group editor"
+  },
   "image": "Image",
   "@image": {
     "description": "Accessibility label of an image that opens in full screen when tapped"
@@ -403,6 +411,10 @@
   "@kind_searches": {
     "description": "Filter chip: show only the saved searches"
   },
+  "label_with_count": "{label} {count}",
+  "@label_with_count": {
+    "description": "Filter chip: a kind of subscription and how many there are, e.g. Accounts 8"
+  },
   "language": "Language",
   "@language": {},
   "language_subtitle": "Requires a restart",
@@ -465,6 +477,14 @@
   "@more_info": {},
   "more_options": "More options",
   "@more_options": {},
+  "move_down": "Move down",
+  "@move_down": {
+    "description": "Screen reader action on a subscription in the custom order: move it one row down"
+  },
+  "move_up": "Move up",
+  "@move_up": {
+    "description": "Screen reader action on a subscription in the custom order: move it one row up"
+  },
   "mute": "Mute",
   "@mute": {},
   "mute_video_description": "Whether videos should be muted by default",
@@ -854,6 +874,10 @@
   "@search_your_subscriptions": {},
   "select": "Select",
   "@select": {},
+  "select_subscription": "Select {name}",
+  "@select_subscription": {
+    "description": "Screen reader label of the avatar of a subscription, which selects it"
+  },
   "send": "Send",
   "@send": {},
   "session_rejected_message": "Check that the account still works on x.com, then log in again.",
@@ -912,6 +936,10 @@
   "sort_by": "Sort by",
   "@sort_by": {
     "description": "Accessibility label of the menu choosing how a list is sorted"
+  },
+  "sort_by_value": "Sort by: {value}",
+  "@sort_by_value": {
+    "description": "Screen reader label of the sort button, e.g. Sort by: Name"
   },
   "space_back_10_seconds": "Back 10 seconds",
   "@space_back_10_seconds": {},

@@ -35,12 +35,13 @@ final _quickIcons = [
       .map((key) => jsonEncode({'pack': 'material', 'key': key})),
 ];
 
-/// A new group starts with [initialMembers].
-Future<void> openGroupEditor(BuildContext context, {String? id, Set<String> initialMembers = const {}}) =>
-    Navigator.push(
+/// A new group starts with [initialMembers]. Returns whether the group was saved.
+Future<bool> openGroupEditor(BuildContext context, {String? id, Set<String> initialMembers = const {}}) async =>
+    await Navigator.push<bool>(
       context,
       MaterialPageRoute(fullscreenDialog: true, builder: (_) => GroupEditorScreen(id: id, initialMembers: initialMembers)),
-    );
+    ) ??
+    false;
 
 class GroupEditorScreen extends StatefulWidget {
   final String? id;
@@ -59,7 +60,12 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
   @override
   void initState() {
     super.initState();
-    _model.load(widget.id, widget.initialMembers).then((_) => _name.text = _model.state?.draft.name ?? '');
+    _model.load(widget.id, widget.initialMembers, context.read<SubscriptionsModel>().state).then((state) {
+      if (mounted) {
+        _name.text = state.draft.name;
+        _model.update(state);
+      }
+    });
   }
 
   @override
@@ -71,7 +77,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
 
   Future<void> _save() async {
     if (await _model.save() && mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     }
   }
 
@@ -84,7 +90,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         return PopScope(
-          canPop: !state.dirty,
+          canPop: !state.dirty || state.closing,
           onPopInvokedWithResult: (didPop, _) async {
             if (!didPop && await _confirmDiscard(context) && context.mounted) {
               Navigator.pop(context);
@@ -105,7 +111,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
       leading: IconButton(icon: const Icon(Icons.close), tooltip: l10n.close, onPressed: () => Navigator.maybePop(context)),
       title: Text(state.draft.id == null ? l10n.new_group : state.original.name),
       actions: [
-        FilledButton(onPressed: _save, child: Text(l10n.save)),
+        FilledButton(onPressed: state.closing ? null : _save, child: Text(l10n.save)),
         if (state.draft.id == null)
           const SizedBox(width: 12)
         else
@@ -174,11 +180,9 @@ class _GroupEditorBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
-    final subscriptions = [...context.read<SubscriptionsModel>().state]
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    final query = state.query.trim().toLowerCase();
-    final searched = subscriptions.where((s) => matchesQuery(s, query)).toList();
-    final shown = searched.where((s) => state.kind == null || SubscriptionKind.of(s) == state.kind).toList();
+    final subscriptions = state.subscriptions;
+    final searched = searchedSubscriptions(subscriptions, state.query.trim().toLowerCase());
+    final shown = ofKind(searched, state.kind);
     // The members of the group as it opened stay first, so that ticking a box never moves a row
     final wereIn = shown.where((s) => state.original.members.contains(s.id)).toList();
     final others = shown.where((s) => !state.original.members.contains(s.id)).toList();
@@ -196,7 +200,7 @@ class _GroupEditorBody extends StatelessWidget {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 8),
             child: SearchBar(
               hintText: l10n.search_your_subscriptions,
               leading: const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.search)),
@@ -221,7 +225,7 @@ class _GroupEditorBody extends StatelessWidget {
     return [
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 16, bottom: 4),
           child: Text(title, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.primary)),
         ),
       ),
@@ -233,11 +237,7 @@ class _GroupEditorBody extends StatelessWidget {
             key: ValueKey(subscriptionKey(subscription)),
             secondary: SubscriptionAvatar(subscription: subscription),
             title: Text(subscription.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(
-              subscription is UserSubscription ? '@${subscription.screenName}' : L10n.of(context).search_term,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            subtitle: Text(subscriptionLine(L10n.of(context), subscription), maxLines: 1, overflow: TextOverflow.ellipsis),
             value: state.draft.members.contains(subscription.id),
             onChanged: (_) => model.toggleMember(subscription.id),
           );
@@ -259,7 +259,7 @@ class _Identity extends StatelessWidget {
     final l10n = L10n.of(context);
     final tone = groupTone(context, state.draft.color);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(top: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -336,11 +336,11 @@ class _ColorChoices extends StatelessWidget {
           final tone = groupTone(context, color);
           final isSelected = color?.toARGB32() == selected?.toARGB32();
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsetsDirectional.only(end: 8),
             child: Semantics(
               button: true,
               selected: isSelected,
-              label: color == null ? l10n.default_color : '${l10n.color} $index',
+              label: color == null ? l10n.default_color : l10n.color_number(index),
               child: InkResponse(
                 onTap: () => onPicked(color),
                 radius: 24,
@@ -400,7 +400,7 @@ class _IconChoices extends StatelessWidget {
             final (index, icon) = entry;
             final isSelected = icon == selected;
             return Padding(
-              padding: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsetsDirectional.only(end: 8),
               child: IconButton(
                 isSelected: isSelected,
                 style: IconButton.styleFrom(
@@ -409,7 +409,7 @@ class _IconChoices extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   fixedSize: const Size(48, 48),
                 ),
-                icon: Icon(deserializeIconData(icon), semanticLabel: '${L10n.of(context).icon} ${index + 1}'),
+                icon: Icon(deserializeIconData(icon), semanticLabel: L10n.of(context).icon_number(index + 1)),
                 onPressed: () => onPicked(icon),
               ),
             );

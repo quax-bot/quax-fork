@@ -15,6 +15,7 @@ import 'package:quax/subscriptions/subscription_kind.dart';
 import 'package:quax/subscriptions/subscription_order.dart';
 import 'package:quax/subscriptions/subscriptions_page_model.dart';
 import 'package:quax/subscriptions/users_model.dart';
+import 'package:quax/ui/back_interceptors.dart';
 import 'package:quax/ui/errors.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
@@ -28,13 +29,33 @@ class SubscriptionsScreen extends StatefulWidget {
 
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   late final SubscriptionsPageModel _page = SubscriptionsPageModel(PrefService.of(context, listen: false));
+  late final BackInterceptors _backInterceptors = context.read<BackInterceptors>();
   final TextEditingController _query = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _backInterceptors.add(_onBack);
+  }
+
+  @override
   void dispose() {
+    _backInterceptors.remove(_onBack);
     _query.dispose();
     _page.destroy();
     super.dispose();
+  }
+
+  bool _onBack() {
+    if (_page.state.selecting) {
+      _page.clearSelection();
+      return true;
+    }
+    if (_page.state.searching) {
+      _closeSearch();
+      return true;
+    }
+    return false;
   }
 
   void _closeSearch() {
@@ -46,27 +67,19 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Widget build(BuildContext context) {
     return ScopedBuilder<SubscriptionsModel, List<Subscription>>(
       store: context.read<SubscriptionsModel>(),
-      onLoading: (_) => const Scaffold(body: Center(child: CircularProgressIndicator())),
       onError: (_, e) => Scaffold(
         body: FullPageErrorWidget(
             error: e, stackTrace: null, prefix: (l10n) => l10n.unable_to_refresh_the_subscriptions),
       ),
       onState: (_, subscriptions) => ScopedBuilder<SubscriptionsPageModel, SubscriptionsPageState>(
         store: _page,
-        onState: (_, page) => PopScope(
-          canPop: !page.selecting && !page.searching,
-          onPopInvokedWithResult: (didPop, _) {
-            if (didPop) return;
-            page.selecting ? _page.clearSelection() : _closeSearch();
-          },
-          child: Scaffold(
-            appBar: _appBar(context, page, subscriptions),
-            body: _SubscriptionsBody(
-              page: _page,
-              pageState: page,
-              subscriptions: subscriptions,
-              scrollController: widget.scrollController,
-            ),
+        onState: (_, page) => Scaffold(
+          appBar: _appBar(context, page, subscriptions),
+          body: _SubscriptionsBody(
+            page: _page,
+            pageState: page,
+            subscriptions: subscriptions,
+            scrollController: widget.scrollController,
           ),
         ),
       ),
@@ -158,12 +171,13 @@ class _SubscriptionsBody extends StatelessWidget {
   }
 
   Widget _content(BuildContext context, List<SubscriptionGroup> groups, Map<String, Set<String>> members) {
-    final searched = searchedSubscriptions(subscriptions, pageState);
-    final shown = shownSubscriptions(searched, pageState);
+    final searched = searchedSubscriptions(subscriptions, pageState.trimmedQuery);
+    final shown = ofKind(searched, pageState.kind);
     final visibleGroups = shownGroups(groups, members, searched, pageState.trimmedQuery);
     final groupsOf = _groupsBySubscription(groups, members);
     final order = context.read<SubscriptionsModel>().order;
-    final canReorder = order.sort == SubscriptionSort.custom && !pageState.selecting && !pageState.searching;
+    final canReorder =
+        order.sort == SubscriptionSort.custom && !pageState.selecting && !pageState.searching && shown.length > 1;
 
     return CustomScrollView(
       controller: scrollController,
@@ -174,7 +188,7 @@ class _SubscriptionsBody extends StatelessWidget {
           SliverToBoxAdapter(
             child: KindFilters(searched: searched, chosen: pageState.kind, onChosen: page.showKind),
           ),
-        if (canReorder && shown.length > 1) const SliverToBoxAdapter(child: _DragHint()),
+        if (canReorder) const SliverToBoxAdapter(child: _DragHint()),
         if (pageState.kind == SubscriptionKind.user && shown.isNotEmpty && !pageState.searching && !pageState.selecting)
           const SliverToBoxAdapter(child: _ImportTile()),
         if (shown.isEmpty)
@@ -220,6 +234,7 @@ class _SubscriptionsBody extends StatelessWidget {
 
   Widget _rows(BuildContext context, List<Subscription> shown, Map<String, List<SubscriptionGroup>> groupsOf,
       bool canReorder) {
+    final model = context.read<SubscriptionsModel>();
     Widget row(int index) {
       final subscription = shown[index];
       return SubscriptionRow(
@@ -230,6 +245,9 @@ class _SubscriptionsBody extends StatelessWidget {
         selecting: pageState.selecting,
         onToggleSelected: () => page.toggleSelected(subscription),
         dragIndex: canReorder ? index : null,
+        onMoveUp: canReorder && index > 0 ? () => model.moveSubscription(shown, index, index - 1) : null,
+        onMoveDown:
+            canReorder && index < shown.length - 1 ? () => model.moveSubscription(shown, index, index + 1) : null,
       );
     }
 
@@ -240,8 +258,7 @@ class _SubscriptionsBody extends StatelessWidget {
       itemCount: shown.length,
       proxyDecorator: (child, _, _) => Material(type: MaterialType.transparency, child: child),
       itemBuilder: (_, index) => row(index),
-      onReorderItem: (oldIndex, newIndex) =>
-          context.read<SubscriptionsModel>().moveSubscription(shown, oldIndex, newIndex),
+      onReorderItem: (oldIndex, newIndex) => model.moveSubscription(shown, oldIndex, newIndex),
     );
   }
 

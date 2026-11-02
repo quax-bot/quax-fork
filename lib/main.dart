@@ -42,6 +42,7 @@ import 'package:quax/subscriptions/users_model.dart';
 import 'package:quax/trends/trends_model.dart';
 import 'package:quax/tweet/_video.dart';
 import 'package:quax/ui/discord_popup.dart';
+import 'package:quax/ui/back_interceptors.dart';
 import 'package:quax/ui/errors.dart';
 import 'package:logging/logging.dart';
 import 'package:pref/pref.dart';
@@ -235,11 +236,9 @@ Future<void> main() async {
     optionShouldCheckForUpdates: true,
     optionOpenLinksInEmbeddedBrowser: false,
     optionDiscordPopupDismissed: false,
-    optionSubscriptionGroupsOrderByAscending: true,
     optionDisableWarningsForUnrelatedPostsInFeed: false,
     optionKeepFeedOffset: false,
     alwaysShowFullTweetContents: false,
-    optionSubscriptionGroupsOrderByField: 'name',
     optionSubscriptionOrderByAscending: true,
     optionSubscriptionOrderByField: 'name',
     optionSubscriptionOrderCustom: '',
@@ -308,6 +307,7 @@ Future<void> main() async {
           providers: [
             Provider(create: (context) => groupsModel),
             Provider(create: (context) => groupMembershipsModel),
+            Provider(create: (context) => BackInterceptors()),
             Provider(create: (context) => releaseNotesModel),
             Provider(create: (context) => VideoControllerPool(maxSize: videoPlayerBudget)),
             Provider(create: (context) => homeModel),
@@ -661,7 +661,7 @@ class _DefaultPageState extends State<DefaultPage> {
     return PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
+          if (didPop || context.read<BackInterceptors>().intercept()) return;
           var prefService = PrefService.of(context);
           if (!prefService.get(optionConfirmClose)) {
             SystemNavigator.pop();

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_iconpicker/flutter_iconpicker.dart';
 import 'package:flutter_triple/flutter_triple.dart';
-import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
 import 'package:quax/database/repository.dart';
 import 'package:logging/logging.dart';
@@ -124,8 +123,6 @@ class GroupsModel extends Store<List<SubscriptionGroup>> {
     _onGroupsReloaded.remove(key);
   }
 
-  bool get orderGroupsAscending => prefs.get(optionSubscriptionGroupsOrderByAscending);
-  String get orderGroupsBy => prefs.get(optionSubscriptionGroupsOrderByField);
 
   Future<void> deleteGroup(String id) async {
     log.info('Deleting the group $id');
@@ -138,13 +135,6 @@ class GroupsModel extends Store<List<SubscriptionGroup>> {
 
       return state.where((e) => e.id != id).toList();
     });
-    _notifyReloaded();
-  }
-
-  void _notifyReloaded() {
-    for (final callback in _onGroupsReloaded.values) {
-      callback();
-    }
   }
 
   Future reloadGroups() async {
@@ -153,16 +143,17 @@ class GroupsModel extends Store<List<SubscriptionGroup>> {
     await execute(() async {
       var database = await Repository.readOnly();
 
-      var orderByDirection = orderGroupsAscending ? 'COLLATE NOCASE ASC' : 'COLLATE NOCASE DESC';
-
       var query =
-          "SELECT g.id, g.name, g.icon, g.color, g.created_at, COUNT(gm.profile_id) AS number_of_members FROM $tableSubscriptionGroup g LEFT JOIN $tableSubscriptionGroupMember gm ON gm.group_id = g.id WHERE g.id != '-1' GROUP BY g.id ORDER BY $orderGroupsBy $orderByDirection";
+          "SELECT g.id, g.name, g.icon, g.color, g.created_at, COUNT(gm.profile_id) AS number_of_members FROM $tableSubscriptionGroup g LEFT JOIN $tableSubscriptionGroupMember gm ON gm.group_id = g.id WHERE g.id != '-1' GROUP BY g.id ORDER BY g.name COLLATE NOCASE ASC";
 
       return (await database.rawQuery(query)).map((e) => SubscriptionGroup.fromMap(e)).toList(growable: false);
     });
-    _notifyReloaded();
+    for (final callback in _onGroupsReloaded.values) {
+      callback();
+    }
   }
 
+  /// Leaves [reloadGroups] to the caller, so that the feeds reload once for many changes.
   Future<void> addMembers(String groupId, Iterable<String> subscriptionIds) async {
     final batch = (await Repository.writable()).batch();
     for (final id in subscriptionIds) {
@@ -170,16 +161,15 @@ class GroupsModel extends Store<List<SubscriptionGroup>> {
           conflictAlgorithm: ConflictAlgorithm.ignore);
     }
     await batch.commit(noResult: true);
-    await reloadGroups();
   }
 
+  /// Leaves [reloadGroups] to the caller, so that the feeds reload once for many changes.
   Future<void> removeMembers(String groupId, Iterable<String> subscriptionIds) async {
     final batch = (await Repository.writable()).batch();
     for (final id in subscriptionIds) {
       batch.delete(tableSubscriptionGroupMember, where: 'group_id = ? AND profile_id = ?', whereArgs: [groupId, id]);
     }
     await batch.commit(noResult: true);
-    await reloadGroups();
   }
 
   Future<List<SubscriptionGroupMember>> listGroupMembers() async {
@@ -296,7 +286,7 @@ class GroupMembershipsModel extends Store<Map<String, Set<String>>> {
   final GroupsModel groups;
 
   GroupMembershipsModel(this.groups) : super(const {}) {
-    groups.addReloadListener('memberships', reload);
+    groups.observer(onState: (_) => reload());
   }
 
   Future<void> reload() async {

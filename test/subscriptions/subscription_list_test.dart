@@ -9,6 +9,7 @@ import 'package:quax/group/group_model.dart';
 import 'package:quax/subscriptions/group_editor.dart';
 import 'package:quax/subscriptions/subscriptions.dart';
 import 'package:quax/subscriptions/users_model.dart';
+import 'package:quax/ui/back_interceptors.dart';
 
 import '../group/open_feed.dart';
 import '../ui/pump_app.dart';
@@ -18,8 +19,6 @@ const _orderPrefs = {
   optionSubscriptionOrderByAscending: true,
   optionSubscriptionOrderCustom: '',
   optionSubscriptionOrderCustomKeys: '[]',
-  optionSubscriptionGroupsOrderByField: 'name',
-  optionSubscriptionGroupsOrderByAscending: true,
   optionSubscriptionGroupsCollapsed: false,
 };
 
@@ -41,6 +40,7 @@ Widget Function(Widget) _withModels(List<Subscription> subscriptions) => (app) =
           create: (context) =>
               SubscriptionsModel(PrefService.of(context, listen: false), context.read<GroupsModel>())..update(subscriptions),
         ),
+        Provider(create: (_) => BackInterceptors()),
       ],
       child: app,
     );
@@ -48,20 +48,56 @@ Widget Function(Widget) _withModels(List<Subscription> subscriptions) => (app) =
 void main() {
   useFreshDatabase();
 
-  testWidgets('Should keep rendering a subscription while it is dragged by its handle', (tester) async {
+  testWidgets('Should move a subscription dragged by its handle, and keep that order', (tester) async {
     await pumpInApp(tester, SubscriptionsScreen(scrollController: ScrollController()),
         prefs: _orderPrefs, aboveApp: _withModels(['first', 'second', 'third'].map(_account).toList()));
+    final handles = find.descendant(of: find.byType(ListTile), matching: find.byIcon(Icons.drag_indicator));
+    final rowHeight = tester.getCenter(handles.at(1)).dy - tester.getCenter(handles.at(0)).dy;
 
-    final gesture = await tester.startGesture(tester.getCenter(find.byIcon(Icons.drag_indicator).at(1)));
+    final gesture = await tester.startGesture(tester.getCenter(handles.first));
     await tester.pump(const Duration(milliseconds: 100));
-    await gesture.moveBy(const Offset(0, 80));
-    await tester.pump(const Duration(milliseconds: 100));
-
+    for (var step = 0; step < 15; step++) {
+      await gesture.moveBy(Offset(0, rowHeight / 10));
+      await tester.pump(const Duration(milliseconds: 20));
+    }
     expect(tester.takeException(), isNull, reason: 'The drag proxy should have a Material ancestor for its row');
-    expect(find.text('first'), findsWidgets, reason: 'The dragged subscription should still be shown');
-
     await gesture.up();
     await tester.pumpAndSettle();
+
+    double top(String name) => tester.getTopLeft(find.text(name)).dy;
+    expect(top('second'), lessThan(top('first')), reason: '"first" should now be below "second"');
+    expect(top('first'), lessThan(top('third')), reason: '"first" should stay above "third"');
+    final context = tester.element(find.byType(SubscriptionsScreen));
+    expect(PrefService.of(context, listen: false).get(optionSubscriptionOrderCustomKeys),
+        '["user:id-second","user:id-first","user:id-third"]',
+        reason: 'The new order should be stored');
+  });
+
+  testWidgets('Should close the search on back, without closing the app', (tester) async {
+    var appClosed = false;
+    await pumpInApp(
+        tester,
+        Builder(
+          builder: (context) => PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) =>
+                appClosed = !didPop && !context.read<BackInterceptors>().intercept(),
+            child: SubscriptionsScreen(scrollController: ScrollController()),
+          ),
+        ),
+        prefs: _orderPrefs,
+        aboveApp: _withModels([_account('alice')]));
+    await tester.tap(find.byIcon(Icons.search));
+    await tester.pumpAndSettle();
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SearchBar), findsNothing, reason: 'Back should close the search');
+    expect(appClosed, isFalse, reason: 'Back should not reach the app, which would close it');
+
+    await tester.binding.handlePopRoute();
+    expect(appClosed, isTrue, reason: 'Once the search is closed, back should reach the app again');
   });
 
   testWidgets('Should not move a member of the group while it is unticked in the editor', (tester) async {

@@ -71,10 +71,13 @@ Future<void> showGroupsSheet(BuildContext context, List<Subscription> selected, 
     isScrollControlled: true,
     builder: (_) => _GroupsSheet(selected: selected),
   );
-  if (result == _SheetResult.newGroup && context.mounted) {
-    await openGroupEditor(context, initialMembers: selected.map((s) => s.id).toSet());
+  if (context.mounted) {
+    await context.read<GroupsModel>().reloadGroups();
   }
-  if (result != null) {
+  final saved = result == _SheetResult.newGroup &&
+      context.mounted &&
+      await openGroupEditor(context, initialMembers: selected.map((s) => s.id).toSet());
+  if (result == _SheetResult.done || saved) {
     onDone();
   }
 }
@@ -158,9 +161,13 @@ class _GroupChoice extends StatelessWidget {
           : inGroup == 0
               ? membersSummary(context, context.read<SubscriptionsModel>().state.where((s) => members.contains(s.id)))
               : l10n.part_of_selection_in_group(inGroup, ids.length)),
-      onChanged: (_) {
+      onChanged: (_) async {
         final groups = context.read<GroupsModel>();
-        all ? groups.removeMembers(group.id, ids) : groups.addMembers(group.id, ids.where((id) => !members.contains(id)));
+        final memberships = context.read<GroupMembershipsModel>();
+        await (all
+            ? groups.removeMembers(group.id, ids)
+            : groups.addMembers(group.id, ids.where((id) => !members.contains(id))));
+        await memberships.reload();
       },
     );
   }

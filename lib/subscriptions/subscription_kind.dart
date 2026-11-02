@@ -1,22 +1,26 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:quax/database/entities.dart';
+import 'package:quax/database/repository.dart';
 
+/// The names are stored in the custom order: never rename them.
 enum SubscriptionKind {
-  user(Icons.person),
-  search(Icons.saved_search);
+  user(Icons.person, tableSubscription),
+  search(Icons.saved_search, tableSearchSubscription);
 
-  const SubscriptionKind(this.icon);
+  const SubscriptionKind(this.icon, this.table);
 
   final IconData icon;
+  final String table;
 
-  static SubscriptionKind of(Subscription subscription) => subscription is SearchSubscription ? search : user;
+  static SubscriptionKind of(Subscription subscription) => switch (subscription) {
+        UserSubscription() => user,
+        SearchSubscription() => search,
+      };
 }
 
 /// Ids of different kinds may collide.
 String subscriptionKey(Subscription subscription) => '${SubscriptionKind.of(subscription).name}:${subscription.id}';
 
-Map<SubscriptionKind, int> countByKind(Iterable<Subscription> subscriptions) => {
-      for (final kind in SubscriptionKind.values)
-        if (subscriptions.any((s) => SubscriptionKind.of(s) == kind))
-          kind: subscriptions.where((s) => SubscriptionKind.of(s) == kind).length,
-    };
+/// Kinds without any subscription are left out.
+Map<SubscriptionKind, int> countByKind(Iterable<Subscription> subscriptions) => subscriptions.fold(
+    {}, (counts, s) => counts..update(SubscriptionKind.of(s), (n) => n + 1, ifAbsent: () => 1));

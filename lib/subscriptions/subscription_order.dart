@@ -26,8 +26,11 @@ class SubscriptionOrder {
 
   const SubscriptionOrder({required this.sort, required this.ascending, this.custom = const []});
 
+  SubscriptionOrder copyWith({SubscriptionSort? sort, bool? ascending, List<String>? custom}) => SubscriptionOrder(
+      sort: sort ?? this.sort, ascending: ascending ?? this.ascending, custom: custom ?? this.custom);
+
   List<Subscription> apply(Iterable<Subscription> subscriptions) {
-    final byName = subscriptions.toList()..sort(_compareNames);
+    final byName = subscriptions.toList()..sort(compareNames);
     if (sort == SubscriptionSort.custom) {
       return _customOrder(byName);
     }
@@ -38,12 +41,12 @@ class SubscriptionOrder {
   int _compare(Subscription a, Subscription b) => switch (sort) {
         SubscriptionSort.screenName => a.screenName.toLowerCase().compareTo(b.screenName.toLowerCase()),
         SubscriptionSort.createdAt => a.createdAt.compareTo(b.createdAt),
-        _ => _compareNames(a, b),
+        _ => compareNames(a, b),
       };
 
-  // Subscriptions added since the custom order was set go last
   List<Subscription> _customOrder(List<Subscription> byName) {
     final position = {for (final (index, key) in custom.indexed) key: index};
+    // Subscriptions added since the custom order was set go last
     final ranked = byName.indexed
         .map((entry) => (rank: position[subscriptionKey(entry.$2)] ?? custom.length + entry.$1, subscription: entry.$2))
         .toList()
@@ -52,7 +55,7 @@ class SubscriptionOrder {
   }
 }
 
-int _compareNames(Subscription a, Subscription b) => a.name.toLowerCase().compareTo(b.name.toLowerCase());
+int compareNames(Subscription a, Subscription b) => a.name.toLowerCase().compareTo(b.name.toLowerCase());
 
 String encodeCustomOrder(List<String> keys) => jsonEncode(keys);
 
@@ -77,9 +80,6 @@ List<String> reorderedKeys(List<String> all, List<String> visible, int oldIndex,
   final moved = visible[oldIndex];
   final shown = [...visible]..removeAt(oldIndex);
   final rest = all.where((key) => key != moved).toList();
-  if (shown.isEmpty) {
-    return [...rest, moved];
-  }
   final insertAt = newIndex < shown.length ? rest.indexOf(shown[newIndex]) : rest.indexOf(shown.last) + 1;
   return [...rest]..insert(insertAt, moved);
 }

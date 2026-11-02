@@ -48,7 +48,8 @@ class SubscriptionsPageModel extends Store<SubscriptionsPageState> {
 
   void search(String query) => update(state.withQuery(query));
 
-  void showKind(SubscriptionKind? kind) => update(state.copyWith(kind: () => kind));
+  /// Clears the selection, which could hold subscriptions the new filter hides.
+  void showKind(SubscriptionKind? kind) => update(state.copyWith(kind: () => kind, selected: const {}));
 
   void toggleSelected(Subscription subscription) {
     final key = subscriptionKey(subscription);
@@ -72,12 +73,13 @@ bool matchesQuery(Subscription subscription, String query) =>
     subscription.name.toLowerCase().contains(query) ||
     subscription.screenName.toLowerCase().contains(query);
 
-/// The subscriptions the search matches, before the kind filter.
-List<Subscription> searchedSubscriptions(List<Subscription> all, SubscriptionsPageState page) =>
-    all.where((s) => matchesQuery(s, page.trimmedQuery)).toList();
+/// [query] is trimmed and lower case.
+List<Subscription> searchedSubscriptions(List<Subscription> all, String query) =>
+    all.where((s) => matchesQuery(s, query)).toList();
 
-List<Subscription> shownSubscriptions(List<Subscription> searched, SubscriptionsPageState page) =>
-    searched.where((s) => page.kind == null || SubscriptionKind.of(s) == page.kind).toList();
+/// A null [kind] shows every kind.
+List<Subscription> ofKind(List<Subscription> subscriptions, SubscriptionKind? kind) =>
+    subscriptions.where((s) => kind == null || SubscriptionKind.of(s) == kind).toList();
 
 /// While searching, a group shows if its name matches or if it holds a matching subscription.
 List<SubscriptionGroup> shownGroups(List<SubscriptionGroup> groups, Map<String, Set<String>> members,
@@ -92,7 +94,7 @@ List<SubscriptionGroup> shownGroups(List<SubscriptionGroup> groups, Map<String, 
 }
 
 /// A filter shows only for kinds with subscriptions, plus the one chosen.
-List<SubscriptionKind> filterKinds(Iterable<Subscription> subscriptions, SubscriptionKind? chosen) =>
-    SubscriptionKind.values
-        .where((kind) => kind == chosen || subscriptions.any((s) => SubscriptionKind.of(s) == kind))
-        .toList();
+List<SubscriptionKind> filterKinds(Iterable<Subscription> subscriptions, SubscriptionKind? chosen) {
+  final present = countByKind(subscriptions).keys;
+  return SubscriptionKind.values.where((kind) => kind == chosen || present.contains(kind)).toList();
+}

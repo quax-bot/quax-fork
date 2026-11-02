@@ -41,7 +41,7 @@ class GroupsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     return Padding(
-      padding: const EdgeInsets.only(left: 16, right: 4),
+      padding: const EdgeInsetsDirectional.only(start: 16, end: 4),
       child: Row(
         children: [
           Expanded(child: SectionTitle(title: l10n.groups, count: count)),
@@ -100,7 +100,7 @@ class GroupsCarousel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (groups.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
         child: Text(L10n.of(context).groups_description,
             style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       );
@@ -109,7 +109,7 @@ class GroupsCarousel extends StatelessWidget {
       height: 120,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
         itemCount: groups.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
@@ -144,15 +144,16 @@ class GroupCard extends StatelessWidget {
                 onTap: () => Navigator.pushNamed(context, routeGroup,
                     arguments: GroupScreenArguments(id: group.id, name: group.name)),
                 child: Semantics(
-                  label: '${group.name}, ${membersSummary(context, members)}',
+                  label: group.name,
+                  value: membersSummary(context, members),
                   excludeSemantics: true,
                   child: _GroupCardContent(group: group, members: members, color: tone.foreground),
                 ),
               ),
             ),
-            Positioned(
+            PositionedDirectional(
               top: 2,
-              right: 2,
+              end: 2,
               child: IconButton(
                 icon: Icon(Icons.edit, size: 20, color: tone.foreground),
                 tooltip: L10n.of(context).edit_group,

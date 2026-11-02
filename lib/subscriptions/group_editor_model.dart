@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:quax/database/entities.dart';
 import 'package:quax/group/group_model.dart';
 import 'package:quax/subscriptions/subscription_kind.dart';
+import 'package:quax/subscriptions/subscription_order.dart';
 
 class GroupDraft {
   final String? id;
@@ -35,23 +36,35 @@ class GroupDraft {
 class GroupEditorState {
   final GroupDraft original;
   final GroupDraft draft;
+
+  /// Every subscription, by name.
+  final List<Subscription> subscriptions;
   final String query;
   final SubscriptionKind? kind;
   final bool showNameError;
+  final bool closing;
 
   const GroupEditorState(
-      {required this.original, required this.draft, this.query = '', this.kind, this.showNameError = false});
+      {required this.original,
+      required this.draft,
+      required this.subscriptions,
+      this.query = '',
+      this.kind,
+      this.showNameError = false,
+      this.closing = false});
 
   bool get dirty => !draft.sameAs(original);
 
   GroupEditorState copyWith(
-          {GroupDraft? draft, String? query, SubscriptionKind? Function()? kind, bool? showNameError}) =>
+          {GroupDraft? draft, String? query, SubscriptionKind? Function()? kind, bool? showNameError, bool? closing}) =>
       GroupEditorState(
         original: original,
         draft: draft ?? this.draft,
+        subscriptions: subscriptions,
         query: query ?? this.query,
         kind: kind == null ? this.kind : kind(),
         showNameError: showNameError ?? this.showNameError,
+        closing: closing ?? this.closing,
       );
 }
 
@@ -61,11 +74,12 @@ class GroupEditorModel extends Store<GroupEditorState?> {
 
   GroupEditorModel(this.groups) : super(null);
 
-  /// A new group starts with [initialMembers].
-  Future<void> load(String? id, Set<String> initialMembers) async {
+  /// A new group starts with [initialMembers]. The caller shows the result, if still open.
+  Future<GroupEditorState> load(String? id, Set<String> initialMembers, List<Subscription> subscriptions) async {
     final group = GroupDraft.of(await groups.loadGroupEdit(id));
     final draft = id == null ? group.copyWith(members: initialMembers) : group;
-    update(GroupEditorState(original: draft, draft: draft));
+    return GroupEditorState(
+        original: draft, draft: draft, subscriptions: [...subscriptions]..sort(compareNames));
   }
 
   void _edit(GroupEditorState Function(GroupEditorState state) change) {
@@ -90,10 +104,10 @@ class GroupEditorModel extends Store<GroupEditorState?> {
         return s.copyWith(draft: s.draft.copyWith(members: members));
       });
 
-  /// Returns false when the group has no name.
+  /// Returns false when the group has no name, or is already closing.
   Future<bool> save() async {
     final current = state;
-    if (current == null) {
+    if (current == null || current.closing) {
       return false;
     }
     final name = current.draft.name.trim();
@@ -101,14 +115,17 @@ class GroupEditorModel extends Store<GroupEditorState?> {
       update(current.copyWith(showNameError: true));
       return false;
     }
+    update(current.copyWith(closing: true));
     final draft = current.draft;
     await groups.saveGroup(draft.id, name, draft.icon, draft.color, draft.members);
     return true;
   }
 
   Future<void> delete() async {
-    final id = state?.draft.id;
-    if (id != null) {
+    final current = state;
+    final id = current?.draft.id;
+    if (current != null && id != null) {
+      update(current.copyWith(closing: true));
       await groups.deleteGroup(id);
     }
   }

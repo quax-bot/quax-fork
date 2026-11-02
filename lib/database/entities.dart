@@ -88,7 +88,7 @@ class SavedTweetFolder with ToMappable {
   }
 }
 
-abstract class Subscription with ToMappable {
+sealed class Subscription with ToMappable {
   final String id;
   final String screenName;
   final String name;
