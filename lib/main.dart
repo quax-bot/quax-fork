@@ -243,6 +243,8 @@ Future<void> main() async {
     optionSubscriptionOrderByAscending: true,
     optionSubscriptionOrderByField: 'name',
     optionSubscriptionOrderCustom: '',
+    optionSubscriptionOrderCustomKeys: '[]',
+    optionSubscriptionGroupsCollapsed: false,
     optionThemeMode: 'system',
     optionThemeColor: 'accent',
     optionThemeTrueBlack: false,
@@ -280,7 +282,9 @@ Future<void> main() async {
     var importDataModel = ImportDataModel();
 
     var groupsModel = GroupsModel(prefService);
+    var groupMembershipsModel = GroupMembershipsModel(groupsModel);
     await groupsModel.reloadGroups();
+    await groupMembershipsModel.reload();
 
     var homeModel = HomeModel(prefService, groupsModel);
     await homeModel.loadPages();
@@ -303,6 +307,7 @@ Future<void> main() async {
         child: MultiProvider(
           providers: [
             Provider(create: (context) => groupsModel),
+            Provider(create: (context) => groupMembershipsModel),
             Provider(create: (context) => releaseNotesModel),
             Provider(create: (context) => VideoControllerPool(maxSize: videoPlayerBudget)),
             Provider(create: (context) => homeModel),

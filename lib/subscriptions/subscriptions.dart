@@ -1,175 +1,329 @@
+import 'package:flutter_triple/flutter_triple.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pref/pref.dart';
+import 'package:provider/provider.dart';
 import 'package:quax/constants.dart';
+import 'package:quax/database/entities.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/group/group_model.dart';
+import 'package:quax/search/search.dart';
 import 'package:quax/subscriptions/_groups.dart';
 import 'package:quax/subscriptions/_import.dart';
 import 'package:quax/subscriptions/_list.dart';
+import 'package:quax/subscriptions/_selection.dart';
+import 'package:quax/subscriptions/subscription_kind.dart';
+import 'package:quax/subscriptions/subscription_order.dart';
+import 'package:quax/subscriptions/subscriptions_page_model.dart';
 import 'package:quax/subscriptions/users_model.dart';
-import 'package:provider/provider.dart';
+import 'package:quax/ui/errors.dart';
 
-class SubscriptionsScreen extends StatelessWidget {
+class SubscriptionsScreen extends StatefulWidget {
   final ScrollController scrollController;
 
   const SubscriptionsScreen({super.key, required this.scrollController});
 
   @override
+  State<SubscriptionsScreen> createState() => _SubscriptionsScreenState();
+}
+
+class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
+  late final SubscriptionsPageModel _page = SubscriptionsPageModel(PrefService.of(context, listen: false));
+  final TextEditingController _query = TextEditingController();
+
+  @override
+  void dispose() {
+    _query.dispose();
+    _page.destroy();
+    super.dispose();
+  }
+
+  void _closeSearch() {
+    _query.clear();
+    _page.closeSearch();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(L10n.current.subscriptions),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.settings, semanticLabel: L10n.of(context).settings),
-            onPressed: () async {
-              Navigator.pushNamed(context, routeSettings);
-            },
-          ),
-        ],
+    return ScopedBuilder<SubscriptionsModel, List<Subscription>>(
+      store: context.read<SubscriptionsModel>(),
+      onLoading: (_) => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      onError: (_, e) => Scaffold(
+        body: FullPageErrorWidget(
+            error: e, stackTrace: null, prefix: (l10n) => l10n.unable_to_refresh_the_subscriptions),
       ),
-      body: CustomScrollView(
-        controller: scrollController,
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.all(8.0),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  ExpansionTile(
-                    title: Text(
-                      L10n.of(context).groups,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    enabled: false,
-                    initiallyExpanded: true,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.add,
-                            color: Theme.of(context).iconTheme.color,
-                            semanticLabel: L10n.of(context).new_group,
-                          ),
-                          onPressed: () => openSubscriptionGroupDialog(
-                            context,
-                            null,
-                            '',
-                            defaultGroupIcon,
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.sort,
-                            color: Theme.of(context).iconTheme.color,
-                          ),
-                          tooltip: L10n.of(context).sort_by,
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'name',
-                              child: Text(L10n.of(context).name),
-                            ),
-                            PopupMenuItem(
-                              value: 'created_at',
-                              child: Text(L10n.of(context).date_created),
-                            ),
-                          ],
-                          onSelected: (value) => context
-                              .read<GroupsModel>()
-                              .changeOrderSubscriptionGroupsBy(value),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.sort_by_alpha,
-                            color: Theme.of(context).iconTheme.color,
-                            semanticLabel: L10n.of(context).reverse_order,
-                          ),
-                          onPressed: () => context
-                              .read<GroupsModel>()
-                              .toggleOrderSubscriptionGroupsAscending(),
-                        ),
-                      ],
-                    ),
-                    children: [
-                      SubscriptionGroups(scrollController: scrollController),
-                    ],
-                  ),
-                  const SizedBox(height: 8.0),
-                  ExpansionTile(
-                    title: Text(
-                      L10n.of(context).subscriptions,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    enabled: false,
-                    initiallyExpanded: true,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.cloud_download,
-                            color: Theme.of(context).iconTheme.color,
-                            semanticLabel: L10n.of(context).import_subscriptions,
-                          ),
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SubscriptionImportScreen(),
-                            ),
-                          ),
-                        ),
-                        PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.sort,
-                            color: Theme.of(context).iconTheme.color,
-                          ),
-                          tooltip: L10n.of(context).sort_by,
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'name',
-                              child: Text(L10n.of(context).name),
-                            ),
-                            PopupMenuItem(
-                              value: 'screen_name',
-                              child: Text(L10n.of(context).username),
-                            ),
-                            PopupMenuItem(
-                              value: 'created_at',
-                              child: Text(L10n.of(context).date_subscribed),
-                            ),
-                          ],
-                          onSelected: (value) => context
-                              .read<SubscriptionsModel>()
-                              .changeOrderSubscriptionsBy(value),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.sort_by_alpha,
-                            color: Theme.of(context).iconTheme.color,
-                            semanticLabel: L10n.of(context).reverse_order,
-                          ),
-                          onPressed: () => context
-                              .read<SubscriptionsModel>()
-                              .toggleOrderSubscriptionsAscending(),
-                        ),
-                      ],
-                    ),
-                    children: const [],
-                  ),
-                ],
-              ),
+      onState: (_, subscriptions) => ScopedBuilder<SubscriptionsPageModel, SubscriptionsPageState>(
+        store: _page,
+        onState: (_, page) => PopScope(
+          canPop: !page.selecting && !page.searching,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            page.selecting ? _page.clearSelection() : _closeSearch();
+          },
+          child: Scaffold(
+            appBar: _appBar(context, page, subscriptions),
+            body: _SubscriptionsBody(
+              page: _page,
+              pageState: page,
+              subscriptions: subscriptions,
+              scrollController: widget.scrollController,
             ),
           ),
-          const SubscriptionUsers(),
-          SliverToBoxAdapter(child: SizedBox(height: MediaQuery.of(context).padding.bottom)),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _appBar(BuildContext context, SubscriptionsPageState page, List<Subscription> subscriptions) {
+    final l10n = L10n.of(context);
+    if (page.selecting) {
+      final selected = subscriptions.where((s) => page.selected.contains(subscriptionKey(s))).toList();
+      return SelectionAppBar(selected: selected, onClear: _page.clearSelection);
+    }
+    final settings = IconButton(
+      icon: const Icon(Icons.settings),
+      tooltip: l10n.settings,
+      onPressed: () => Navigator.pushNamed(context, routeSettings),
+    );
+    if (page.searching) {
+      return AppBar(
+        leading: IconButton(icon: const Icon(Icons.arrow_back), tooltip: l10n.close, onPressed: _closeSearch),
+        titleSpacing: 0,
+        title: _SearchField(controller: _query, onChanged: _page.search),
+        actions: [settings],
+      );
+    }
+    return AppBar(
+      title: Text(l10n.subscriptions),
+      actions: [
+        IconButton(icon: const Icon(Icons.search), tooltip: l10n.search_your_subscriptions, onPressed: _page.openSearch),
+        settings,
+      ],
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const _SearchField({required this.controller, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    return SearchBar(
+      controller: controller,
+      autoFocus: true,
+      hintText: l10n.search_your_subscriptions,
+      elevation: const WidgetStatePropertyAll(0),
+      constraints: const BoxConstraints(minHeight: 48),
+      onChanged: onChanged,
+      trailing: [
+        ListenableBuilder(
+          listenable: controller,
+          builder: (_, _) => controller.text.isEmpty
+              ? const SizedBox.shrink()
+              : IconButton(
+                  icon: const Icon(Icons.clear),
+                  tooltip: l10n.clear,
+                  onPressed: () {
+                    controller.clear();
+                    onChanged('');
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SubscriptionsBody extends StatelessWidget {
+  final SubscriptionsPageModel page;
+  final SubscriptionsPageState pageState;
+  final List<Subscription> subscriptions;
+  final ScrollController scrollController;
+
+  const _SubscriptionsBody(
+      {required this.page, required this.pageState, required this.subscriptions, required this.scrollController});
+
+  @override
+  Widget build(BuildContext context) {
+    return ScopedBuilder<GroupsModel, List<SubscriptionGroup>>(
+      store: context.read<GroupsModel>(),
+      onState: (_, groups) => ScopedBuilder<GroupMembershipsModel, Map<String, Set<String>>>(
+        store: context.read<GroupMembershipsModel>(),
+        onState: (_, members) => _content(context, groups, members),
+      ),
+    );
+  }
+
+  Widget _content(BuildContext context, List<SubscriptionGroup> groups, Map<String, Set<String>> members) {
+    final searched = searchedSubscriptions(subscriptions, pageState);
+    final shown = shownSubscriptions(searched, pageState);
+    final visibleGroups = shownGroups(groups, members, searched, pageState.trimmedQuery);
+    final groupsOf = _groupsBySubscription(groups, members);
+    final order = context.read<SubscriptionsModel>().order;
+    final canReorder = order.sort == SubscriptionSort.custom && !pageState.selecting && !pageState.searching;
+
+    return CustomScrollView(
+      controller: scrollController,
+      slivers: [
+        if (visibleGroups.isNotEmpty || !pageState.searching) ..._groupSlivers(groups, visibleGroups, members),
+        SliverToBoxAdapter(child: _listHeader(context, searched.length, order)),
+        if (searched.isNotEmpty)
+          SliverToBoxAdapter(
+            child: KindFilters(searched: searched, chosen: pageState.kind, onChosen: page.showKind),
+          ),
+        if (canReorder && shown.length > 1) const SliverToBoxAdapter(child: _DragHint()),
+        if (pageState.kind == SubscriptionKind.user && shown.isNotEmpty && !pageState.searching && !pageState.selecting)
+          const SliverToBoxAdapter(child: _ImportTile()),
+        if (shown.isEmpty)
+          SliverToBoxAdapter(child: _emptyState(context))
+        else
+          _rows(context, shown, groupsOf, canReorder),
+        SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 16)),
+      ],
+    );
+  }
+
+  List<Widget> _groupSlivers(
+      List<SubscriptionGroup> all, List<SubscriptionGroup> visible, Map<String, Set<String>> members) {
+    final collapsed = pageState.groupsCollapsed && !pageState.searching;
+    return [
+      SliverToBoxAdapter(
+        child: GroupsHeader(count: visible.length, collapsed: collapsed, onToggleCollapsed: page.toggleGroupsCollapsed),
+      ),
+      if (!collapsed)
+        SliverToBoxAdapter(
+          child: GroupsCarousel(
+            groups: visible,
+            members: members,
+            subscriptionsById: {for (final s in subscriptions) s.id: s},
+          ),
+        ),
+      const SliverToBoxAdapter(child: Divider(indent: 16, endIndent: 16, height: 1)),
+    ];
+  }
+
+  Widget _listHeader(BuildContext context, int count, SubscriptionOrder order) {
+    final model = context.read<SubscriptionsModel>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+      child: Row(
+        children: [
+          Expanded(child: SectionTitle(title: L10n.of(context).followed, count: count)),
+          SortControls(order: order, onCycle: model.cycleSort, onReverse: model.reverseOrder),
         ],
       ),
+    );
+  }
+
+  Widget _rows(BuildContext context, List<Subscription> shown, Map<String, List<SubscriptionGroup>> groupsOf,
+      bool canReorder) {
+    Widget row(int index) {
+      final subscription = shown[index];
+      return SubscriptionRow(
+        key: ValueKey(subscriptionKey(subscription)),
+        subscription: subscription,
+        groups: groupsOf[subscription.id] ?? const [],
+        selected: pageState.selected.contains(subscriptionKey(subscription)),
+        selecting: pageState.selecting,
+        onToggleSelected: () => page.toggleSelected(subscription),
+        dragIndex: canReorder ? index : null,
+      );
+    }
+
+    if (!canReorder) {
+      return SliverList.builder(itemCount: shown.length, itemBuilder: (_, index) => row(index));
+    }
+    return SliverReorderableList(
+      itemCount: shown.length,
+      proxyDecorator: (child, _, _) => Material(type: MaterialType.transparency, child: child),
+      itemBuilder: (_, index) => row(index),
+      onReorderItem: (oldIndex, newIndex) =>
+          context.read<SubscriptionsModel>().moveSubscription(shown, oldIndex, newIndex),
+    );
+  }
+
+  Widget _emptyState(BuildContext context) {
+    final l10n = L10n.of(context);
+    final query = pageState.query?.trim() ?? '';
+    if (query.isNotEmpty) {
+      final tab = pageState.kind == SubscriptionKind.user ? SearchTab.people : SearchTab.top;
+      return EmptySubscriptions(
+        icon: Icons.search_off,
+        message: l10n.no_subscription_matches(query),
+        actionIcon: Icons.travel_explore,
+        actionLabel: l10n.search_on_x(query),
+        onAction: () => Navigator.pushNamed(context, routeSearch, arguments: SearchArguments(tab, query: query)),
+      );
+    }
+    if (pageState.kind == SubscriptionKind.search) {
+      return EmptySubscriptions(
+        icon: SubscriptionKind.search.icon,
+        message: l10n.no_saved_searches,
+        actionIcon: Icons.search,
+        actionLabel: l10n.search,
+        onAction: () => Navigator.pushNamed(context, routeSearch,
+            arguments: SearchArguments(SearchTab.top, focusInputOnOpen: true)),
+      );
+    }
+    return EmptySubscriptions(
+      icon: Icons.inbox_outlined,
+      message: l10n.no_subscriptions_try_searching_or_importing_some,
+      actionIcon: Icons.download,
+      actionLabel: l10n.import_subscriptions,
+      onAction: () => openImport(context),
+    );
+  }
+}
+
+Map<String, List<SubscriptionGroup>> _groupsBySubscription(
+        List<SubscriptionGroup> groups, Map<String, Set<String>> members) =>
+    groups.fold({}, (bySubscription, group) {
+      for (final id in members[group.id] ?? const <String>{}) {
+        bySubscription.putIfAbsent(id, () => []).add(group);
+      }
+      return bySubscription;
+    });
+
+void openImport(BuildContext context) =>
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionImportScreen()));
+
+class _DragHint extends StatelessWidget {
+  const _DragHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          Icon(Icons.drag_indicator, size: 18, color: color),
+          const SizedBox(width: 6),
+          Expanded(child: Text(L10n.of(context).drag_to_reorder, style: TextStyle(color: color))),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImportTile extends StatelessWidget {
+  const _ImportTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    final colors = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: colors.secondaryContainer,
+        child: Icon(Icons.download, color: colors.onSecondaryContainer),
+      ),
+      title: Text(l10n.import_subscriptions, style: TextStyle(color: colors.primary)),
+      subtitle: Text(l10n.import_subscriptions_description),
+      onTap: () => openImport(context),
     );
   }
 }

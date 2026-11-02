@@ -7,7 +7,9 @@ import 'package:quax/database/repository.dart';
 import 'package:quax/group/group_model.dart';
 import 'package:quax/subscriptions/refreshed_profiles.dart';
 import 'package:quax/user.dart';
-import 'package:quax/utils/iterables.dart';
+import 'package:quax/subscriptions/subscription_kind.dart';
+import 'package:quax/subscriptions/subscription_order.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:logging/logging.dart';
 import 'package:pref/pref.dart';
 
@@ -28,57 +30,110 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     _onSubscriptionsReloaded.remove(key);
   }
 
+  SubscriptionOrder get order => SubscriptionOrder(
+        sort: SubscriptionSort.fromPref(prefs.get(optionSubscriptionOrderByField)),
+        ascending: prefs.get(optionSubscriptionOrderByAscending),
+        custom: decodeCustomOrder(prefs.get(optionSubscriptionOrderCustomKeys)),
+      );
+
   Future<void> reloadSubscriptions() async {
     log.info('Listing subscriptions');
 
     await execute(() async {
       var database = await Repository.readOnly();
 
-      String orderCustom = prefs.get(optionSubscriptionOrderCustom);
-      bool orderByAscending = prefs.get(optionSubscriptionOrderByAscending);
-      String orderByField = prefs.get(optionSubscriptionOrderByField);
-
       List<Subscription> users = (await database.query(tableSubscription)).map((e) => UserSubscription.fromMap(e)).toList();
-
       List<Subscription> searches = (await database.query(tableSearchSubscription)).map((e) => SearchSubscription.fromMap(e)).toList();
+      final subscriptions = [...users, ...searches];
 
-      List<Subscription> lst = [...users, ...searches];
-      if (orderCustom.isEmpty) {
-        return lst.sorted((a, b) {
-          var one = orderByAscending ? a : b;
-          var two = orderByAscending ? b : a;
-
-          switch (orderByField) {
-            case 'name':
-              return one.name.toLowerCase().compareTo(two.name.toLowerCase());
-            case 'screen_name':
-              return one.screenName.toLowerCase().compareTo(two.screenName.toLowerCase());
-            case 'created_at':
-              return one.createdAt.compareTo(two.createdAt);
-            default:
-              return one.name.toLowerCase().compareTo(two.name.toLowerCase());
-          }
-        }).toList();
-      }
-      else {
-        List<Subscription> newLst = [];
-        for(String screenName in orderCustom.split(',')) {
-          Subscription? s = lst.firstWhereOrNull((e) => e.screenName == screenName);
-          if (s != null) {
-            lst.removeWhere((e) => e.screenName == screenName);
-            newLst.add(s);
-          }
-        }
-        if (lst.isNotEmpty) {
-          newLst.addAll(lst);
-        }
-        await prefs.set(optionSubscriptionOrderCustom, newLst.map((s) => s.screenName).join(','));
-        return newLst;
-      }
+      await _migrateLegacyCustomOrder(subscriptions);
+      return order.apply(subscriptions);
     });
     for(final callback in _onSubscriptionsReloaded.values) {
       callback();
     }
+  }
+
+  Future<void> _migrateLegacyCustomOrder(List<Subscription> subscriptions) async {
+    final String legacy = prefs.get(optionSubscriptionOrderCustom) ?? '';
+    if (legacy.isEmpty) {
+      return;
+    }
+    await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(keysOfLegacyCustomOrder(legacy, subscriptions)));
+    await prefs.set(optionSubscriptionOrderByField, SubscriptionSort.custom.pref);
+    await prefs.set(optionSubscriptionOrderCustom, '');
+  }
+
+  Future<void> _saveOrder({SubscriptionSort? sort, bool? ascending, List<String>? custom}) async {
+    if (sort != null) await prefs.set(optionSubscriptionOrderByField, sort.pref);
+    if (ascending != null) await prefs.set(optionSubscriptionOrderByAscending, ascending);
+    if (custom != null) await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(custom));
+    update(order.apply(state));
+  }
+
+  /// The first custom order is the order shown.
+  Future<void> cycleSort() async {
+    final next = order.sort.next;
+    final startsCustomOrder = next == SubscriptionSort.custom && order.custom.isEmpty;
+    await _saveOrder(sort: next, custom: startsCustomOrder ? state.map(subscriptionKey).toList() : null);
+  }
+
+  Future<void> reverseOrder() => _saveOrder(ascending: !order.ascending);
+
+  Future<void> moveSubscription(List<Subscription> visible, int oldIndex, int newIndex) => _saveOrder(
+      custom: reorderedKeys(state.map(subscriptionKey).toList(), visible.map(subscriptionKey).toList(), oldIndex, newIndex));
+
+  /// Returns what [restore] needs to undo it.
+  Future<RemovedSubscriptions> unsubscribeAll(List<Subscription> subscriptions) async {
+    final database = await Repository.writable();
+    final ids = subscriptions.map((s) => s.id).toList();
+    if (ids.isEmpty) {
+      return const RemovedSubscriptions([], []);
+    }
+    final memberships = (await database.query(tableSubscriptionGroupMember,
+            where: 'profile_id IN (${List.filled(ids.length, '?').join(',')})', whereArgs: ids))
+        .map(SubscriptionGroupMember.fromMap)
+        .toList();
+
+    final batch = database.batch();
+    for (final subscription in subscriptions) {
+      final table = subscription is SearchSubscription ? tableSearchSubscription : tableSubscription;
+      batch.delete(table, where: 'id = ?', whereArgs: [subscription.id]);
+      batch.delete(tableSubscriptionGroupMember, where: 'profile_id = ?', whereArgs: [subscription.id]);
+    }
+    await batch.commit(noResult: true);
+
+    await reloadSubscriptions();
+    await groupModel.reloadGroups();
+    return RemovedSubscriptions(subscriptions, memberships);
+  }
+
+  Future<void> restore(RemovedSubscriptions removed) async {
+    final database = await Repository.writable();
+    final batch = database.batch();
+    for (final subscription in removed.subscriptions) {
+      final table = subscription is SearchSubscription ? tableSearchSubscription : tableSubscription;
+      batch.insert(table, subscription.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    for (final membership in removed.memberships) {
+      batch.insert(tableSubscriptionGroupMember, membership.toMap(), conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+    await batch.commit(noResult: true);
+
+    await reloadSubscriptions();
+    await groupModel.reloadGroups();
+  }
+
+  /// Searches are never in the main feed.
+  Future<void> setInFeed(Iterable<Subscription> subscriptions, bool inFeed) async {
+    final ids = subscriptions.whereType<UserSubscription>().map((s) => s.id).toList();
+    if (ids.isEmpty) {
+      return;
+    }
+    final database = await Repository.writable();
+    await database.update(tableSubscription, {'in_feed': inFeed ? 1 : 0},
+        where: 'id IN (${List.filled(ids.length, '?').join(',')})', whereArgs: ids);
+    await reloadSubscriptions();
   }
 
   Future<void> _toggleSearchSubscribe(SearchSubscription user, bool currentlyFollowed) async {
@@ -174,24 +229,11 @@ class SubscriptionsModel extends Store<List<Subscription>> {
       return state;
     });
   }
+}
 
-  Future<void> changeOrderSubscriptionsBy(String? value) async {
-    await execute(() async {
-      await prefs.set(optionSubscriptionOrderCustom, '');
-      await prefs.set(optionSubscriptionOrderByField, value ?? 'name');
-      await reloadSubscriptions();
+class RemovedSubscriptions {
+  final List<Subscription> subscriptions;
+  final List<SubscriptionGroupMember> memberships;
 
-      return state;
-    });
-  }
-
-  Future<void> toggleOrderSubscriptionsAscending() async {
-    await execute(() async {
-      await prefs.set(optionSubscriptionOrderCustom, '');
-      await prefs.set(optionSubscriptionOrderByAscending, !prefs.get(optionSubscriptionOrderByAscending));
-      await reloadSubscriptions();
-
-      return state;
-    });
-  }
+  const RemovedSubscriptions(this.subscriptions, this.memberships);
 }

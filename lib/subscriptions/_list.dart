@@ -1,209 +1,294 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_triple/flutter_triple.dart';
-import 'package:pref/pref.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
-import 'package:quax/search/search.dart';
-import 'package:quax/subscriptions/users_model.dart';
-import 'package:quax/ui/errors.dart';
-import 'package:quax/user.dart';
-import 'package:provider/provider.dart';
 import 'package:quax/generated/l10n.dart';
+import 'package:quax/profile/profile.dart';
+import 'package:quax/search/search.dart';
+import 'package:quax/subscriptions/_groups.dart';
+import 'package:quax/subscriptions/subscription_kind.dart';
+import 'package:quax/subscriptions/subscription_order.dart';
+import 'package:quax/subscriptions/subscriptions_page_model.dart';
+import 'package:quax/user.dart';
 
-class SubscriptionUsers extends StatefulWidget {
-  const SubscriptionUsers({super.key});
-
-  @override
-  State<SubscriptionUsers> createState() => _SubscriptionUsersState();
+void openSubscription(BuildContext context, Subscription subscription) {
+  if (subscription is UserSubscription) {
+    Navigator.pushNamed(context, routeProfile,
+        arguments: ProfileScreenArguments(subscription.id, subscription.screenName, null));
+  } else {
+    Navigator.pushNamed(context, routeSearch,
+        arguments: SearchArguments(SearchTab.top, focusInputOnOpen: false, query: subscription.id));
+  }
 }
 
-class _SubscriptionUsersState extends State<SubscriptionUsers> {
-  final TextEditingController _searchController = TextEditingController();
+class SubscriptionAvatar extends StatelessWidget {
+  final Subscription subscription;
+  final bool selected;
+
+  const SubscriptionAvatar({super.key, required this.subscription, this.selected = false});
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    if (selected) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: colors.primary,
+        child: Icon(Icons.check, color: colors.onPrimary),
+      );
+    }
+    if (subscription is UserSubscription) {
+      return UserAvatar(uri: subscription.profileImageUrlHttps, size: 40);
+    }
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: colors.tertiaryContainer,
+      child: Icon(SubscriptionKind.of(subscription).icon, color: colors.onTertiaryContainer),
+    );
   }
+}
 
-  Widget _buildPlaceholder(BuildContext context, String message) {
+class SubscriptionRow extends StatelessWidget {
+  final Subscription subscription;
+  final List<SubscriptionGroup> groups;
+  final bool selected;
+  final bool selecting;
+  final VoidCallback onToggleSelected;
+
+  /// Set while the custom order can be changed.
+  final int? dragIndex;
+
+  const SubscriptionRow(
+      {super.key,
+      required this.subscription,
+      required this.groups,
+      required this.selected,
+      required this.selecting,
+      required this.onToggleSelected,
+      this.dragIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    final colors = Theme.of(context).colorScheme;
+    return ListTile(
+      selected: selected,
+      selectedTileColor: colors.secondaryContainer.withValues(alpha: 0.6),
+      leading: Semantics(
+        button: true,
+        selected: selected,
+        label: l10n.select,
+        child: InkResponse(
+          onTap: onToggleSelected,
+          radius: 24,
+          child: SubscriptionAvatar(subscription: subscription, selected: selected),
+        ),
+      ),
+      title: _SubscriptionTitle(subscription: subscription),
+      subtitle: _SubscriptionSubtitle(subscription: subscription, groups: groups),
+      trailing: dragIndex == null
+          ? null
+          : ReorderableDragStartListener(index: dragIndex!, child: const Icon(Icons.drag_indicator)),
+      onTap: selecting ? onToggleSelected : () => openSubscription(context, subscription),
+      onLongPress: onToggleSelected,
+    );
+  }
+}
+
+class _SubscriptionTitle extends StatelessWidget {
+  final Subscription subscription;
+
+  const _SubscriptionTitle({required this.subscription});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Flexible(child: Text(subscription.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        if (subscription.verified) ...[
+          const SizedBox(width: 6),
+          Icon(Icons.verified, size: 14, color: Theme.of(context).colorScheme.primary),
+        ],
+      ],
+    );
+  }
+}
+
+class _SubscriptionSubtitle extends StatelessWidget {
+  final Subscription subscription;
+  final List<SubscriptionGroup> groups;
+
+  const _SubscriptionSubtitle({required this.subscription, required this.groups});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    final line = subscription is UserSubscription ? '@${subscription.screenName}' : l10n.search_term;
+    final hidden = subscription is UserSubscription && !subscription.inFeed;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(hidden ? '$line · ${l10n.hidden_from_main_feed}' : line, maxLines: 1, overflow: TextOverflow.ellipsis),
+        if (groups.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          GroupTags(groups: groups),
+        ],
+      ],
+    );
+  }
+}
+
+/// Shows two groups at most, then how many more.
+class GroupTags extends StatelessWidget {
+  final List<SubscriptionGroup> groups;
+
+  const GroupTags({super.key, required this.groups});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        ...groups.take(2).map((group) {
+          final tone = groupTone(context, group.color);
+          return _Tag(icon: group.iconData, label: group.name, background: tone.background, foreground: tone.foreground);
+        }),
+        if (groups.length > 2)
+          _Tag(label: '+${groups.length - 2}', background: colors.surfaceContainerHighest, foreground: colors.onSurfaceVariant),
+      ],
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  final IconData? icon;
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  const _Tag({this.icon, required this.label, required this.background, required this.foreground});
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(color: foreground);
     return Container(
-      alignment: Alignment.center,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(6)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            child: const Text('¯\\_(ツ)_/¯', style: TextStyle(fontSize: 32)),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).hintColor),
-            ),
-          ),
+          if (icon != null) ...[Icon(icon, size: 13, color: foreground), const SizedBox(width: 4)],
+          Flexible(child: Text(label, style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSearchBar(BuildContext context) {
-    final hasQuery = _searchController.text.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: SearchBar(
-        controller: _searchController,
-        hintText: L10n.of(context).search,
-        leading: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Icon(Icons.search),
-        ),
-        trailing: hasQuery
-            ? [
-                IconButton(
-                  icon: Icon(Icons.clear, semanticLabel: L10n.of(context).clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {});
-                  },
-                ),
-              ]
-            : null,
-        onChanged: (_) => setState(() {}),
-      ),
-    );
-  }
+class KindFilters extends StatelessWidget {
+  final List<Subscription> searched;
+  final SubscriptionKind? chosen;
+  final ValueChanged<SubscriptionKind?> onChosen;
 
-  // Lazy, drag-to-reorder list shown when no search query is active.
-  Widget _buildReorderableSliver(
-    BuildContext context,
-    List<Subscription> state,
-  ) {
-    final prefs = PrefService.of(context);
-    final String orderCustom = prefs.get(optionSubscriptionOrderCustom);
-
-    final subLst = <Subscription>[];
-    if (orderCustom.isNotEmpty) {
-      subLst.addAll(
-        orderCustom
-            .split(',')
-            .map((sn) => state.firstWhere((s) => s.screenName == sn)),
-      );
-    } else {
-      subLst.addAll(state);
-    }
-
-    return SliverReorderableList(
-      itemCount: subLst.length,
-      proxyDecorator: (child, _, _) => Material(type: MaterialType.transparency, child: child),
-      itemBuilder: (context, i) => ReorderableDelayedDragStartListener(
-        key: ValueKey(subLst[i].screenName),
-        index: i,
-        child: buildSubscriptionTile(context, subLst[i]),
-      ),
-      onReorderItem: (oldIndex, newIndex) async {
-        final s = subLst.removeAt(oldIndex);
-        subLst.insert(newIndex, s);
-        final lst = subLst.map((s) => s.screenName).join(',');
-        await prefs.set(optionSubscriptionOrderCustom, lst);
-      },
-    );
-  }
-
-  // Lazy, filtered list shown while a search query is active.
-  Widget _buildFilteredSliver(
-    BuildContext context,
-    List<Subscription> state,
-    String query,
-  ) {
-    final filtered = state
-        .where(
-          (s) =>
-              s.name.toLowerCase().contains(query) ||
-              s.screenName.toLowerCase().contains(query),
-        )
-        .toList();
-    if (filtered.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
-          child: _buildPlaceholder(context, L10n.of(context).no_results),
-        ),
-      );
-    }
-    return SliverList.builder(
-      itemCount: filtered.length,
-      itemBuilder: (context, i) => buildSubscriptionTile(context, filtered[i]),
-    );
-  }
+  const KindFilters({super.key, required this.searched, required this.chosen, required this.onChosen});
 
   @override
   Widget build(BuildContext context) {
-    var model = context.read<SubscriptionsModel>();
-
-    return ScopedBuilder<SubscriptionsModel, List<Subscription>>(
-      store: model,
-      onLoading: (_) => const SliverFillRemaining(
-        hasScrollBody: false,
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      onError: (_, e) => SliverFillRemaining(
-        hasScrollBody: false,
-        child: FullPageErrorWidget(
-          error: e,
-          stackTrace: null,
-          prefix: (l10n) => l10n.unable_to_refresh_the_subscriptions,
-        ),
-      ),
-      onState: (_, state) {
-        if (state.isEmpty) {
-          return SliverFillRemaining(
-            hasScrollBody: false,
-            child: _buildPlaceholder(
-              context,
-              L10n.of(context).no_subscriptions_try_searching_or_importing_some,
-            ),
-          );
-        }
-        final query = _searchController.text.toLowerCase();
-        return SliverMainAxisGroup(
-          slivers: [
-            SliverToBoxAdapter(child: _buildSearchBar(context)),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
-              sliver: query.isEmpty
-                  ? _buildReorderableSliver(context, state)
-                  : _buildFilteredSliver(context, state, query),
-            ),
-          ],
+    final l10n = L10n.of(context);
+    final counts = countByKind(searched);
+    Widget chip(String label, int count, SubscriptionKind? kind) => FilterChip(
+          label: Text('$label $count'),
+          selected: chosen == kind,
+          onSelected: (_) => onChosen(kind),
         );
-      },
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Wrap(
+        spacing: 8,
+        children: [
+          chip(l10n.all, searched.length, null),
+          for (final kind in filterKinds(searched, chosen))
+            chip(kindLabel(l10n, kind), counts[kind] ?? 0, kind),
+        ],
+      ),
     );
   }
 }
 
-Widget buildSubscriptionTile(BuildContext context, Subscription user) {
-  if (user is UserSubscription) {
-    return UserTile(key: Key(user.screenName), user: user);
-  }
+String kindLabel(L10n l10n, SubscriptionKind kind) => switch (kind) {
+      SubscriptionKind.user => l10n.kind_accounts,
+      SubscriptionKind.search => l10n.kind_searches,
+    };
 
-  return ListTile(
-    key: Key(user.screenName),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-    leading: const SizedBox(width: 48, child: Icon(Icons.saved_search)),
-    title: Text(user.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-    subtitle: Text(L10n.current.search_term),
-    trailing: FollowButton(user: user),
-    onTap: () {
-      Navigator.pushNamed(
-        context,
-        routeSearch,
-        arguments: SearchArguments(SearchTab.top, focusInputOnOpen: false, query: user.id),
-      );
-    },
-  );
+class SortControls extends StatelessWidget {
+  final SubscriptionOrder order;
+  final VoidCallback onCycle;
+  final VoidCallback onReverse;
+
+  const SortControls({super.key, required this.order, required this.onCycle, required this.onReverse});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    final label = switch (order.sort) {
+      SubscriptionSort.name => l10n.name,
+      SubscriptionSort.screenName => l10n.username,
+      SubscriptionSort.createdAt => l10n.date_subscribed,
+      SubscriptionSort.custom => l10n.custom_order,
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Tooltip(
+          message: l10n.sort_by,
+          child: TextButton.icon(
+            onPressed: onCycle,
+            icon: const Icon(Icons.swap_vert, size: 18),
+            label: Text(label, semanticsLabel: '${l10n.sort_by}: $label'),
+          ),
+        ),
+        if (order.sort != SubscriptionSort.custom)
+          IconButton(
+            onPressed: onReverse,
+            tooltip: l10n.reverse_order,
+            icon: Icon(order.ascending ? Icons.arrow_upward : Icons.arrow_downward, size: 20),
+          ),
+      ],
+    );
+  }
+}
+
+class EmptySubscriptions extends StatelessWidget {
+  final IconData icon;
+  final String message;
+  final IconData actionIcon;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  const EmptySubscriptions(
+      {super.key,
+      required this.icon,
+      required this.message,
+      required this.actionIcon,
+      required this.actionLabel,
+      required this.onAction});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: color),
+          const SizedBox(height: 8),
+          Text(message, textAlign: TextAlign.center, style: TextStyle(color: color)),
+          const SizedBox(height: 16),
+          FilledButton.tonalIcon(onPressed: onAction, icon: Icon(actionIcon, size: 18), label: Text(actionLabel)),
+        ],
+      ),
+    );
+  }
 }

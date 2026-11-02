@@ -138,6 +138,13 @@ class GroupsModel extends Store<List<SubscriptionGroup>> {
 
       return state.where((e) => e.id != id).toList();
     });
+    _notifyReloaded();
+  }
+
+  void _notifyReloaded() {
+    for (final callback in _onGroupsReloaded.values) {
+      callback();
+    }
   }
 
   Future reloadGroups() async {
@@ -153,9 +160,26 @@ class GroupsModel extends Store<List<SubscriptionGroup>> {
 
       return (await database.rawQuery(query)).map((e) => SubscriptionGroup.fromMap(e)).toList(growable: false);
     });
-    for (final callback in _onGroupsReloaded.values) {
-      callback();
+    _notifyReloaded();
+  }
+
+  Future<void> addMembers(String groupId, Iterable<String> subscriptionIds) async {
+    final batch = (await Repository.writable()).batch();
+    for (final id in subscriptionIds) {
+      batch.insert(tableSubscriptionGroupMember, {'group_id': groupId, 'profile_id': id},
+          conflictAlgorithm: ConflictAlgorithm.ignore);
     }
+    await batch.commit(noResult: true);
+    await reloadGroups();
+  }
+
+  Future<void> removeMembers(String groupId, Iterable<String> subscriptionIds) async {
+    final batch = (await Repository.writable()).batch();
+    for (final id in subscriptionIds) {
+      batch.delete(tableSubscriptionGroupMember, where: 'group_id = ? AND profile_id = ?', whereArgs: [groupId, id]);
+    }
+    await batch.commit(noResult: true);
+    await reloadGroups();
   }
 
   Future<List<SubscriptionGroupMember>> listGroupMembers() async {
@@ -265,14 +289,20 @@ class GroupsModel extends Store<List<SubscriptionGroup>> {
       return state;
     });
   }
+}
 
-  void changeOrderSubscriptionGroupsBy(String? value) async {
-    await prefs.set(optionSubscriptionGroupsOrderByField, value ?? 'name');
-    await reloadGroups();
+/// The member ids of each group.
+class GroupMembershipsModel extends Store<Map<String, Set<String>>> {
+  final GroupsModel groups;
+
+  GroupMembershipsModel(this.groups) : super(const {}) {
+    groups.addReloadListener('memberships', reload);
   }
 
-  void toggleOrderSubscriptionGroupsAscending() async {
-    await prefs.set(optionSubscriptionGroupsOrderByAscending, !orderGroupsAscending);
-    await reloadGroups();
+  Future<void> reload() async {
+    await execute(() async => membersByGroup(await groups.listGroupMembers()));
   }
 }
+
+Map<String, Set<String>> membersByGroup(Iterable<SubscriptionGroupMember> memberships) => memberships.fold(
+    <String, Set<String>>{}, (members, m) => members..putIfAbsent(m.group, () => <String>{}).add(m.profile));
