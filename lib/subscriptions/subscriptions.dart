@@ -75,7 +75,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       onState: (_, subscriptions) => ScopedBuilder<SubscriptionsPageModel, SubscriptionsPageState>(
         store: _page,
         onState: (_, page) => Scaffold(
-          appBar: _appBar(context, page, subscriptions),
+          appBar: _AnimatedAppBar(
+            mode: page.selecting ? 'selection' : (page.searching ? 'search' : 'title'),
+            child: _appBar(context, page, subscriptions),
+          ),
           body: _SubscriptionsBody(
             page: _page,
             pageState: page,
@@ -261,3 +264,33 @@ Map<String, List<SubscriptionGroup>> _groupsBySubscription(
 
 void openImport(BuildContext context) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionImportScreen()));
+
+/// Switches between the title, search and selection bars with a short slide from the search button.
+class _AnimatedAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String mode;
+  final PreferredSizeWidget child;
+
+  const _AnimatedAppBar({required this.mode, required this.child});
+
+  @override
+  Size get preferredSize => child.preferredSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final animate = PrefService.of(context).get(optionDisableAnimations) != true;
+    final fromSearchButton = Directionality.of(context) == TextDirection.rtl ? -0.08 : 0.08;
+    return AnimatedSwitcher(
+      duration: animate ? const Duration(milliseconds: 200) : Duration.zero,
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween(begin: Offset(fromSearchButton, 0), end: Offset.zero).animate(animation),
+          child: child,
+        ),
+      ),
+      child: KeyedSubtree(key: ValueKey(mode), child: child),
+    );
+  }
+}
