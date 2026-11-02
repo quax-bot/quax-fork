@@ -57,12 +57,28 @@ void main() {
     await _follow([flutterDev, _search]);
 
     await subscriptions.reloadSubscriptions();
-    await subscriptions.reloadSubscriptions();
-
     expect(subscriptions.state.map((s) => s.id), [_search.id, flutterDev.id],
-        reason: 'The order chosen in an older version should still show, also after a reload');
+        reason: 'The order chosen in an older version should show at once, as when a backup is restored');
+
+    await subscriptions.reloadSubscriptions();
+    expect(subscriptions.state.map((s) => s.id), [_search.id, flutterDev.id],
+        reason: 'The order should still show after a reload');
     expect(prefs.get(optionSubscriptionOrderByField), 'custom', reason: 'The custom order should become the sort');
     expect(prefs.get(optionSubscriptionOrderCustom), '', reason: 'The old order should not be read again');
+  });
+
+  test('Should sort as a restored backup says', () async {
+    final prefs = _prefs();
+    final subscriptions = SubscriptionsModel(prefs, GroupsModel(prefs));
+    final older = UserSubscription.fromMap({...flutterDev.toMap(), 'id': 'older', 'name': 'Zed', 'created_at': '2020-01-01 00:00:00'});
+    await _follow([flutterDev, older]);
+    await subscriptions.reloadSubscriptions();
+
+    await prefs.fromMap({optionSubscriptionOrderByField: 'created_at'});
+    await subscriptions.reloadSubscriptions();
+
+    expect(subscriptions.state.map((s) => s.id), ['older', flutterDev.id],
+        reason: 'A backup restores the preferences, so the reload should read the sort again');
   });
 
   test('Should create a single group when Save is pressed twice', () async {

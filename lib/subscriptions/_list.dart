@@ -227,6 +227,9 @@ class KindFilters extends StatelessWidget {
     final counts = countByKind(searched);
     Widget chip(String label, int count, SubscriptionKind? kind) => FilterChip(
           label: Text(l10n.label_with_count(label, count)),
+          visualDensity: VisualDensity.compact,
+          labelStyle: Theme.of(context).textTheme.labelMedium,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
           selected: chosen == kind,
           onSelected: (_) => onChosen(kind),
         );
@@ -269,6 +272,12 @@ class SortControls extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (order.sort != SubscriptionSort.custom)
+          IconButton(
+            onPressed: onReverse,
+            tooltip: l10n.reverse_order,
+            icon: Icon(order.ascending ? Icons.arrow_upward : Icons.arrow_downward, size: 20),
+          ),
         Tooltip(
           message: l10n.sort_by,
           child: TextButton.icon(
@@ -277,12 +286,6 @@ class SortControls extends StatelessWidget {
             label: Text(label, semanticsLabel: l10n.sort_by_value(label)),
           ),
         ),
-        if (order.sort != SubscriptionSort.custom)
-          IconButton(
-            onPressed: onReverse,
-            tooltip: l10n.reverse_order,
-            icon: Icon(order.ascending ? Icons.arrow_upward : Icons.arrow_downward, size: 20),
-          ),
       ],
     );
   }

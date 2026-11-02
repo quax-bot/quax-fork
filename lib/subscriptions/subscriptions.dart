@@ -10,6 +10,7 @@ import 'package:quax/search/search.dart';
 import 'package:quax/subscriptions/_groups.dart';
 import 'package:quax/subscriptions/_import.dart';
 import 'package:quax/subscriptions/_list.dart';
+import 'package:quax/subscriptions/_search_field.dart';
 import 'package:quax/subscriptions/_selection.dart';
 import 'package:quax/subscriptions/subscription_kind.dart';
 import 'package:quax/subscriptions/subscription_order.dart';
@@ -101,7 +102,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       return AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back), tooltip: l10n.close, onPressed: _closeSearch),
         titleSpacing: 0,
-        title: _SearchField(controller: _query, onChanged: _page.search),
+        title: CompactSearchField(controller: _query, onChanged: _page.search, autofocus: true),
         actions: [settings],
       );
     }
@@ -109,42 +110,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       title: Text(l10n.subscriptions),
       actions: [
         IconButton(icon: const Icon(Icons.search), tooltip: l10n.search_your_subscriptions, onPressed: _page.openSearch),
+        IconButton(icon: const Icon(Icons.download), tooltip: l10n.import_subscriptions, onPressed: () => openImport(context)),
         settings,
-      ],
-    );
-  }
-}
-
-class _SearchField extends StatelessWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  const _SearchField({required this.controller, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = L10n.of(context);
-    return SearchBar(
-      controller: controller,
-      autoFocus: true,
-      hintText: l10n.search_your_subscriptions,
-      elevation: const WidgetStatePropertyAll(0),
-      constraints: const BoxConstraints(minHeight: 48),
-      onChanged: onChanged,
-      trailing: [
-        ListenableBuilder(
-          listenable: controller,
-          builder: (_, _) => controller.text.isEmpty
-              ? const SizedBox.shrink()
-              : IconButton(
-                  icon: const Icon(Icons.clear),
-                  tooltip: l10n.clear,
-                  onPressed: () {
-                    controller.clear();
-                    onChanged('');
-                  },
-                ),
-        ),
       ],
     );
   }
@@ -188,9 +155,6 @@ class _SubscriptionsBody extends StatelessWidget {
           SliverToBoxAdapter(
             child: KindFilters(searched: searched, chosen: pageState.kind, onChosen: page.showKind),
           ),
-        if (canReorder) const SliverToBoxAdapter(child: _DragHint()),
-        if (pageState.kind == SubscriptionKind.user && shown.isNotEmpty && !pageState.searching && !pageState.selecting)
-          const SliverToBoxAdapter(child: _ImportTile()),
         if (shown.isEmpty)
           SliverToBoxAdapter(child: _emptyState(context))
         else
@@ -306,41 +270,3 @@ Map<String, List<SubscriptionGroup>> _groupsBySubscription(
 
 void openImport(BuildContext context) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionImportScreen()));
-
-class _DragHint extends StatelessWidget {
-  const _DragHint();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.onSurfaceVariant;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Row(
-        children: [
-          Icon(Icons.drag_indicator, size: 18, color: color),
-          const SizedBox(width: 6),
-          Expanded(child: Text(L10n.of(context).drag_to_reorder, style: TextStyle(color: color))),
-        ],
-      ),
-    );
-  }
-}
-
-class _ImportTile extends StatelessWidget {
-  const _ImportTile();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = L10n.of(context);
-    final colors = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: colors.secondaryContainer,
-        child: Icon(Icons.download, color: colors.onSecondaryContainer),
-      ),
-      title: Text(l10n.import_subscriptions, style: TextStyle(color: colors.primary)),
-      subtitle: Text(l10n.import_subscriptions_description),
-      onTap: () => openImport(context),
-    );
-  }
-}

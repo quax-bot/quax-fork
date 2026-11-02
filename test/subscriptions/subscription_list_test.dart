@@ -6,6 +6,7 @@ import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
 import 'package:quax/database/repository.dart';
 import 'package:quax/group/group_model.dart';
+import 'package:quax/subscriptions/_search_field.dart';
 import 'package:quax/subscriptions/group_editor.dart';
 import 'package:quax/subscriptions/subscriptions.dart';
 import 'package:quax/subscriptions/users_model.dart';
@@ -93,7 +94,7 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
-    expect(find.byType(SearchBar), findsNothing, reason: 'Back should close the search');
+    expect(find.byType(CompactSearchField), findsNothing, reason: 'Back should close the search');
     expect(appClosed, isFalse, reason: 'Back should not reach the app, which would close it');
 
     await tester.binding.handlePopRoute();

@@ -10,6 +10,7 @@ import 'package:quax/generated/l10n.dart';
 import 'package:quax/group/group_model.dart';
 import 'package:quax/subscriptions/_groups.dart';
 import 'package:quax/subscriptions/_list.dart';
+import 'package:quax/subscriptions/_search_field.dart';
 import 'package:quax/subscriptions/group_editor_model.dart';
 import 'package:quax/subscriptions/subscription_kind.dart';
 import 'package:quax/subscriptions/subscriptions_page_model.dart';
@@ -201,11 +202,12 @@ class _GroupEditorBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 8),
-            child: SearchBar(
-              hintText: l10n.search_your_subscriptions,
-              leading: const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.search)),
-              elevation: const WidgetStatePropertyAll(0),
-              onChanged: model.search,
+            // Brought to the top, so that the results show above the keyboard
+            child: Builder(
+              builder: (field) => CompactSearchField(
+                onChanged: model.search,
+                onTap: () => Scrollable.ensureVisible(field, duration: const Duration(milliseconds: 200)),
+              ),
             ),
           ),
         ),

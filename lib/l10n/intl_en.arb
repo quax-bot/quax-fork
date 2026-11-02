@@ -199,8 +199,6 @@
   "@download_path": {},
   "downloading_media": "Downloading media...",
   "@downloading_media": {},
-  "drag_to_reorder": "Drag a subscription by its handle to move it.",
-  "@drag_to_reorder": {},
   "edit_folder": "Edit folder",
   "@edit_folder": {},
   "edit_group": "Edit group",
@@ -357,10 +355,6 @@
   "@import_data_from_another_device": {},
   "import_subscriptions": "Import subscriptions",
   "@import_subscriptions": {},
-  "import_subscriptions_description": "Get the accounts an X account follows",
-  "@import_subscriptions_description": {
-    "description": "Subtitle of the button that imports the accounts followed by an X account"
-  },
   "import_subscriptions_intro": "Enter the username of a public 𝕏 account to import its subscriptions.",
   "@import_subscriptions_intro": {
     "description": "Intro of the page importing the subscriptions (followed accounts) of any X account, the user's own or someone else's"

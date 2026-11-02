@@ -50,6 +50,8 @@ class SubscriptionsModel extends Store<List<Subscription>> {
       List<Subscription> searches = (await database.query(tableSearchSubscription)).map((e) => SearchSubscription.fromMap(e)).toList();
       final subscriptions = [...users, ...searches];
 
+      // A restored backup replaces the preferences
+      _order = _storedOrder();
       await _migrateLegacyCustomOrder(subscriptions);
       return _order.apply(subscriptions);
     });
@@ -64,14 +66,18 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     if (legacy.isEmpty) {
       return;
     }
-    await _saveOrder(_order.copyWith(sort: SubscriptionSort.custom, custom: keysOfLegacyCustomOrder(legacy, subscriptions)));
+    await _storeOrder(_order.copyWith(sort: SubscriptionSort.custom, custom: keysOfLegacyCustomOrder(legacy, subscriptions)));
     await prefs.set(optionSubscriptionOrderCustom, '');
   }
 
   /// Shows the new order at once, before it is stored.
   Future<void> _saveOrder(SubscriptionOrder order) async {
-    _order = order;
     update(order.apply(state));
+    await _storeOrder(order);
+  }
+
+  Future<void> _storeOrder(SubscriptionOrder order) async {
+    _order = order;
     await prefs.set(optionSubscriptionOrderByField, order.sort.pref);
     await prefs.set(optionSubscriptionOrderByAscending, order.ascending);
     await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(order.custom));
