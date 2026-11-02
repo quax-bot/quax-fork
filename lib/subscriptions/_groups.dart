@@ -83,7 +83,7 @@ class GroupsCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 68,
+      height: _tileSize + 12,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
@@ -95,6 +95,8 @@ class GroupsCarousel extends StatelessWidget {
     );
   }
 }
+
+const double _tileSize = 84;
 
 /// Opens the feed of the group, or its editor on a long press.
 class GroupTile extends StatelessWidget {
@@ -157,28 +159,27 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: background ?? Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: border),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 200),
+    return SizedBox.square(
+      dimension: _tileSize,
+      child: Material(
+        color: background ?? Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: border),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
           child: Padding(
-            padding: const EdgeInsetsDirectional.only(start: 12, end: 16),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            padding: const EdgeInsets.all(6),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(icon, size: 22, color: foreground),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(color: foreground)),
-                ),
+                const SizedBox(height: 4),
+                Text(label,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(color: foreground, height: 1.25)),
               ],
             ),
           ),
