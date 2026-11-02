@@ -149,8 +149,8 @@ class _SubscriptionsBody extends StatelessWidget {
     return CustomScrollView(
       controller: scrollController,
       slivers: [
-        if (visibleGroups.isNotEmpty || !pageState.searching) ..._groupSlivers(groups, visibleGroups, members),
-        SliverToBoxAdapter(child: _listHeader(context, searched.length, order)),
+        if (visibleGroups.isNotEmpty || !pageState.searching) ..._groupSlivers(visibleGroups),
+        SliverToBoxAdapter(child: _listHeader(context, order)),
         if (searched.isNotEmpty)
           SliverToBoxAdapter(
             child: KindFilters(searched: searched, chosen: pageState.kind, onChosen: page.showKind),
@@ -164,32 +164,23 @@ class _SubscriptionsBody extends StatelessWidget {
     );
   }
 
-  List<Widget> _groupSlivers(
-      List<SubscriptionGroup> all, List<SubscriptionGroup> visible, Map<String, Set<String>> members) {
+  List<Widget> _groupSlivers(List<SubscriptionGroup> visible) {
     final collapsed = pageState.groupsCollapsed && !pageState.searching;
     return [
       SliverToBoxAdapter(
-        child: GroupsHeader(count: visible.length, collapsed: collapsed, onToggleCollapsed: page.toggleGroupsCollapsed),
+        child: GroupsHeader(collapsed: collapsed, onToggleCollapsed: page.toggleGroupsCollapsed),
       ),
-      if (!collapsed)
-        SliverToBoxAdapter(
-          child: GroupsCarousel(
-            groups: visible,
-            members: members,
-            subscriptionsById: {for (final s in subscriptions) s.id: s},
-          ),
-        ),
-      const SliverToBoxAdapter(child: Divider(indent: 16, endIndent: 16, height: 1)),
+      if (!collapsed) SliverToBoxAdapter(child: GroupsCarousel(groups: visible)),
     ];
   }
 
-  Widget _listHeader(BuildContext context, int count, SubscriptionOrder order) {
+  Widget _listHeader(BuildContext context, SubscriptionOrder order) {
     final model = context.read<SubscriptionsModel>();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
       child: Row(
         children: [
-          Expanded(child: SectionTitle(title: L10n.of(context).followed, count: count)),
+          Expanded(child: SectionTitle(L10n.of(context).followed)),
           SortControls(order: order, onCycle: model.cycleSort, onReverse: model.reverseOrder),
         ],
       ),

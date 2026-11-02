@@ -1,3 +1,5 @@
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/semantics.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
@@ -8,15 +10,17 @@ import 'package:quax/subscriptions/subscription_kind.dart';
 
 typedef GroupTone = ({Color background, Color foreground});
 
-final _schemes = <(int, Brightness), ColorScheme>{};
+final _schemes = <(int, int, Brightness), ColorScheme>{};
 
+/// The color of a group, adapted to the theme: leaning toward its accent color, light or dark like it.
 GroupTone groupTone(BuildContext context, Color? color) {
   final theme = Theme.of(context);
+  final primary = theme.colorScheme.primary;
   if (color == null) {
     return (background: theme.colorScheme.secondaryContainer, foreground: theme.colorScheme.onSecondaryContainer);
   }
-  final scheme = _schemes.putIfAbsent((color.toARGB32(), theme.brightness),
-      () => ColorScheme.fromSeed(seedColor: color, brightness: theme.brightness));
+  final scheme = _schemes.putIfAbsent((color.toARGB32(), primary.toARGB32(), theme.brightness),
+      () => ColorScheme.fromSeed(seedColor: color.harmonizeWith(primary), brightness: theme.brightness));
   return (background: scheme.primaryContainer, foreground: scheme.onPrimaryContainer);
 }
 
@@ -31,11 +35,10 @@ String membersSummary(BuildContext context, Iterable<Subscription> members) {
 }
 
 class GroupsHeader extends StatelessWidget {
-  final int count;
   final bool collapsed;
   final VoidCallback onToggleCollapsed;
 
-  const GroupsHeader({super.key, required this.count, required this.collapsed, required this.onToggleCollapsed});
+  const GroupsHeader({super.key, required this.collapsed, required this.onToggleCollapsed});
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +47,7 @@ class GroupsHeader extends StatelessWidget {
       padding: const EdgeInsetsDirectional.only(start: 16, end: 4),
       child: Row(
         children: [
-          Expanded(child: SectionTitle(title: l10n.groups, count: count)),
-          TextButton.icon(
-            onPressed: () => openGroupEditor(context),
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(l10n.new_group_short, semanticsLabel: l10n.new_group),
-          ),
+          Expanded(child: SectionTitle(l10n.groups)),
           IconButton(
             onPressed: onToggleCollapsed,
             tooltip: collapsed ? l10n.show_groups : l10n.hide_groups,
@@ -67,144 +65,124 @@ class GroupsHeader extends StatelessWidget {
 
 class SectionTitle extends StatelessWidget {
   final String title;
-  final int count;
 
-  const SectionTitle({super.key, required this.title, required this.count});
+  const SectionTitle(this.title, {super.key});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
-      children: [
-        Flexible(child: Text(title, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
-        const SizedBox(width: 8),
-        Badge.count(
-          count: count,
-          maxCount: 99999,
-          backgroundColor: theme.colorScheme.surfaceContainerHighest,
-          textColor: theme.colorScheme.onSurfaceVariant,
-        ),
-      ],
-    );
+    return Text(title, style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant));
   }
 }
 
 class GroupsCarousel extends StatelessWidget {
   final List<SubscriptionGroup> groups;
-  final Map<String, Set<String>> members;
-  final Map<String, Subscription> subscriptionsById;
 
-  const GroupsCarousel({super.key, required this.groups, required this.members, required this.subscriptionsById});
+  const GroupsCarousel({super.key, required this.groups});
 
   @override
   Widget build(BuildContext context) {
-    if (groups.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
-        child: Text(L10n.of(context).groups_description,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-      );
-    }
     return SizedBox(
-      height: 120,
+      height: 68,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 12),
-        itemCount: groups.length,
+        itemCount: groups.length + 1,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final group = groups[index];
-          final groupMembers = (members[group.id] ?? const {}).map((id) => subscriptionsById[id]).nonNulls;
-          return GroupCard(group: group, members: groupMembers.toList());
-        },
+        itemBuilder: (context, index) =>
+            index < groups.length ? GroupTile(group: groups[index]) : const _NewGroupTile(),
       ),
     );
   }
 }
 
-class GroupCard extends StatelessWidget {
+/// Opens the feed of the group, or its editor on a long press.
+class GroupTile extends StatelessWidget {
   final SubscriptionGroup group;
-  final List<Subscription> members;
 
-  const GroupCard({super.key, required this.group, required this.members});
+  const GroupTile({super.key, required this.group});
 
   @override
   Widget build(BuildContext context) {
     final tone = groupTone(context, group.color);
-    return SizedBox(
-      width: 148,
-      child: Material(
-        color: tone.background,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: InkWell(
-                onTap: () => Navigator.pushNamed(context, routeGroup,
-                    arguments: GroupScreenArguments(id: group.id, name: group.name)),
-                child: Semantics(
-                  label: group.name,
-                  value: membersSummary(context, members),
-                  excludeSemantics: true,
-                  child: _GroupCardContent(group: group, members: members, color: tone.foreground),
-                ),
-              ),
-            ),
-            PositionedDirectional(
-              top: 2,
-              end: 2,
-              child: IconButton(
-                icon: Icon(Icons.edit, size: 20, color: tone.foreground),
-                tooltip: L10n.of(context).edit_group,
-                onPressed: () => openGroupEditor(context, id: group.id),
-              ),
-            ),
-          ],
-        ),
+    void edit() => openGroupEditor(context, id: group.id);
+    return Semantics(
+      customSemanticsActions: {CustomSemanticsAction(label: L10n.of(context).edit_group): edit},
+      child: _Tile(
+        icon: group.iconData,
+        label: group.name,
+        background: tone.background,
+        foreground: tone.foreground,
+        onTap: () => Navigator.pushNamed(context, routeGroup,
+            arguments: GroupScreenArguments(id: group.id, name: group.name)),
+        onLongPress: edit,
       ),
     );
   }
 }
 
-class _GroupCardContent extends StatelessWidget {
-  final SubscriptionGroup group;
-  final List<Subscription> members;
-  final Color color;
-
-  const _GroupCardContent({required this.group, required this.members, required this.color});
+class _NewGroupTile extends StatelessWidget {
+  const _NewGroupTile();
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(group.iconData, size: 28, color: color),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(group.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.titleMedium?.copyWith(color: color)),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  for (final entry in countByKind(members).entries) ...[
-                    Icon(entry.key.icon, size: 15, color: color),
-                    const SizedBox(width: 2),
-                    Text('${entry.value}', style: textTheme.labelMedium?.copyWith(color: color)),
-                    const SizedBox(width: 10),
-                  ],
-                ],
-              ),
-            ],
+    final colors = Theme.of(context).colorScheme;
+    return _Tile(
+      icon: Icons.add,
+      label: L10n.of(context).new_group,
+      foreground: colors.onSurfaceVariant,
+      border: BorderSide(color: colors.outline),
+      onTap: () => openGroupEditor(context),
+    );
+  }
+}
+
+class _Tile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? background;
+  final Color foreground;
+  final BorderSide border;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  const _Tile(
+      {required this.icon,
+      required this.label,
+      this.background,
+      required this.foreground,
+      this.border = BorderSide.none,
+      required this.onTap,
+      this.onLongPress});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: background ?? Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: border),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 200),
+          child: Padding(
+            padding: const EdgeInsetsDirectional.only(start: 12, end: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 22, color: foreground),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(color: foreground)),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

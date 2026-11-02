@@ -304,8 +304,6 @@
   "@group_name": {},
   "groups": "Groups",
   "@groups": {},
-  "groups_description": "A group gathers subscriptions into a single feed.",
-  "@groups_description": {},
   "help_make_fritter_even_better": "Help make QuaX even better",
   "@help_make_fritter_even_better": {},
   "hidden_from_main_feed": "Hidden from the main feed",
@@ -501,10 +499,6 @@
   "@new_badge": {},
   "new_group": "New group",
   "@new_group": {},
-  "new_group_short": "New",
-  "@new_group_short": {
-    "description": "Short button label next to the Groups title, which creates a new group"
-  },
   "next": "Next",
   "@next": {},
   "no": "No",
