@@ -10,6 +10,8 @@ enum SubscriptionKind {
   const SubscriptionKind(this.icon, this.table);
 
   final IconData icon;
+
+  /// The SQLite table where the subscriptions of this kind are stored.
   final String table;
 
   static SubscriptionKind of(Subscription subscription) => switch (subscription) {
