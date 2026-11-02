@@ -35,9 +35,9 @@ class SubscriptionsModel extends Store<List<Subscription>> {
   SubscriptionOrder get order => _order;
 
   SubscriptionOrder _storedOrder() => SubscriptionOrder(
-        sort: SubscriptionSort.fromPref(prefs.get(optionSubscriptionOrderByField)),
+        sort: SubscriptionSort.fromPrefValue(prefs.get(optionSubscriptionOrderByField)),
         ascending: prefs.get(optionSubscriptionOrderByAscending),
-        custom: decodeCustomOrder(prefs.get(optionSubscriptionOrderCustomKeys)),
+        customKeys: decodeCustomOrder(prefs.get(optionSubscriptionOrderCustomKeys)),
       );
 
   Future<void> reloadSubscriptions() async {
@@ -66,37 +66,38 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     if (legacy.isEmpty) {
       return;
     }
-    await _storeOrder(_order.copyWith(sort: SubscriptionSort.custom, custom: keysOfLegacyCustomOrder(legacy, subscriptions)));
+    await _storeOrder(_order.copyWith(sort: SubscriptionSort.custom, customKeys: keysOfLegacyCustomOrder(legacy, subscriptions)));
     await prefs.set(optionSubscriptionOrderCustom, '');
   }
 
   /// Shows the new order at once, before it is stored.
-  Future<void> _saveOrder(SubscriptionOrder order) async {
+  Future<void> _showAndStoreOrder(SubscriptionOrder order) async {
     update(order.apply(state));
     await _storeOrder(order);
   }
 
   Future<void> _storeOrder(SubscriptionOrder order) async {
     _order = order;
-    await prefs.set(optionSubscriptionOrderByField, order.sort.pref);
+    await prefs.set(optionSubscriptionOrderByField, order.sort.prefValue);
     await prefs.set(optionSubscriptionOrderByAscending, order.ascending);
-    await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(order.custom));
+    await prefs.set(optionSubscriptionOrderCustomKeys, encodeCustomOrder(order.customKeys));
   }
 
-  /// Switches to the next sort. The custom order starts from the order shown.
-  Future<void> cycleSort() {
+  /// Switches to the next sort. The first custom order starts from the order shown.
+  Future<void> showNextSort() {
     final next = _order.sort.next;
-    final startsCustomOrder = next == SubscriptionSort.custom && _order.custom.isEmpty;
-    return _saveOrder(_order.copyWith(sort: next, custom: startsCustomOrder ? state.map(subscriptionKey).toList() : null));
+    final isFirstCustomOrder = next == SubscriptionSort.custom && _order.customKeys.isEmpty;
+    return _showAndStoreOrder(
+        _order.copyWith(sort: next, customKeys: isFirstCustomOrder ? state.map(subscriptionKey).toList() : null));
   }
 
-  Future<void> reverseOrder() => _saveOrder(_order.copyWith(ascending: !_order.ascending));
+  Future<void> reverseOrder() => _showAndStoreOrder(_order.copyWith(ascending: !_order.ascending));
 
-  Future<void> moveSubscription(List<Subscription> visible, int oldIndex, int newIndex) => _saveOrder(_order.copyWith(
-      custom: reorderedKeys(state.map(subscriptionKey).toList(), visible.map(subscriptionKey).toList(), oldIndex, newIndex)));
+  Future<void> moveSubscription(List<Subscription> visible, int oldIndex, int newIndex) => _showAndStoreOrder(_order.copyWith(
+      customKeys: reorderedKeys(state.map(subscriptionKey).toList(), visible.map(subscriptionKey).toList(), oldIndex, newIndex)));
 
-  /// Returns what [restore] needs to undo it.
-  Future<RemovedSubscriptions> unsubscribeAll(List<Subscription> subscriptions) async {
+  /// Returns what [resubscribe] needs to undo it.
+  Future<RemovedSubscriptions> unsubscribe(List<Subscription> subscriptions) async {
     final database = await Repository.writable();
     final ids = subscriptions.map((s) => s.id).toSet();
     final memberships = (await database.query(tableSubscriptionGroupMember))
@@ -116,7 +117,7 @@ class SubscriptionsModel extends Store<List<Subscription>> {
     return RemovedSubscriptions(subscriptions, memberships);
   }
 
-  Future<void> restore(RemovedSubscriptions removed) async {
+  Future<void> resubscribe(RemovedSubscriptions removed) async {
     final database = await Repository.writable();
     final batch = database.batch();
     for (final subscription in removed.subscriptions) {
@@ -133,10 +134,10 @@ class SubscriptionsModel extends Store<List<Subscription>> {
   }
 
   /// Only accounts can be hidden from the main feed.
-  Future<void> setInFeed(Iterable<Subscription> subscriptions, bool inFeed) async {
+  Future<void> setShownInMainFeed(Iterable<Subscription> subscriptions, {required bool shown}) async {
     final batch = (await Repository.writable()).batch();
     for (final account in subscriptions.whereType<UserSubscription>()) {
-      batch.update(tableSubscription, {'in_feed': inFeed ? 1 : 0}, where: 'id = ?', whereArgs: [account.id]);
+      batch.update(tableSubscription, {'in_feed': shown ? 1 : 0}, where: 'id = ?', whereArgs: [account.id]);
     }
     await batch.commit(noResult: true);
     await reloadSubscriptions();

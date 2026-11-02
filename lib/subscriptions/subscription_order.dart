@@ -9,12 +9,12 @@ enum SubscriptionSort {
   createdAt('created_at'),
   custom('custom');
 
-  const SubscriptionSort(this.pref);
+  const SubscriptionSort(this.prefValue);
 
-  final String pref;
+  final String prefValue;
 
-  static SubscriptionSort fromPref(String? pref) =>
-      values.firstWhere((sort) => sort.pref == pref, orElse: () => SubscriptionSort.name);
+  static SubscriptionSort fromPrefValue(String? prefValue) =>
+      values.firstWhere((sort) => sort.prefValue == prefValue, orElse: () => SubscriptionSort.name);
 
   SubscriptionSort get next => values[(index + 1) % values.length];
 }
@@ -22,17 +22,16 @@ enum SubscriptionSort {
 class SubscriptionOrder {
   final SubscriptionSort sort;
   final bool ascending;
-  final List<String> custom;
+  final List<String> customKeys;
 
-  const SubscriptionOrder({required this.sort, required this.ascending, this.custom = const []});
+  const SubscriptionOrder({required this.sort, required this.ascending, this.customKeys = const []});
 
-  SubscriptionOrder copyWith({SubscriptionSort? sort, bool? ascending, List<String>? custom}) => SubscriptionOrder(
-      sort: sort ?? this.sort, ascending: ascending ?? this.ascending, custom: custom ?? this.custom);
+  SubscriptionOrder copyWith({SubscriptionSort? sort, bool? ascending, List<String>? customKeys}) => SubscriptionOrder(
+      sort: sort ?? this.sort, ascending: ascending ?? this.ascending, customKeys: customKeys ?? this.customKeys);
 
   List<Subscription> apply(Iterable<Subscription> subscriptions) {
-    final byName = subscriptions.toList()..sort(compareNames);
     if (sort == SubscriptionSort.custom) {
-      return _customOrder(byName);
+      return _inCustomOrder(subscriptions.toList()..sort(compareNames));
     }
     final sorted = subscriptions.toList()..sort(_compare);
     return ascending ? sorted : sorted.reversed.toList();
@@ -41,14 +40,14 @@ class SubscriptionOrder {
   int _compare(Subscription a, Subscription b) => switch (sort) {
         SubscriptionSort.screenName => a.screenName.toLowerCase().compareTo(b.screenName.toLowerCase()),
         SubscriptionSort.createdAt => a.createdAt.compareTo(b.createdAt),
-        _ => compareNames(a, b),
+        SubscriptionSort.name || SubscriptionSort.custom => compareNames(a, b),
       };
 
-  List<Subscription> _customOrder(List<Subscription> byName) {
-    final position = {for (final (index, key) in custom.indexed) key: index};
+  List<Subscription> _inCustomOrder(List<Subscription> byName) {
+    final position = {for (final (index, key) in customKeys.indexed) key: index};
     // Subscriptions added since the custom order was set go last
     final ranked = byName.indexed
-        .map((entry) => (rank: position[subscriptionKey(entry.$2)] ?? custom.length + entry.$1, subscription: entry.$2))
+        .map((entry) => (rank: position[subscriptionKey(entry.$2)] ?? customKeys.length + entry.$1, subscription: entry.$2))
         .toList()
       ..sort((a, b) => a.rank.compareTo(b.rank));
     return ranked.map((entry) => entry.subscription).toList();

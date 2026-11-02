@@ -296,3 +296,10 @@ class GroupMembershipsModel extends Store<Map<String, Set<String>>> {
 
 Map<String, Set<String>> membersByGroup(Iterable<SubscriptionGroupMember> memberships) => memberships.fold(
     <String, Set<String>>{}, (members, m) => members..putIfAbsent(m.group, () => <String>{}).add(m.profile));
+
+Map<String, List<SubscriptionGroup>> groupsBySubscription(
+        List<SubscriptionGroup> groups, Map<String, Set<String>> membersByGroup) =>
+    {
+      for (final id in membersByGroup.values.expand((members) => members).toSet())
+        id: groups.where((group) => membersByGroup[group.id]?.contains(id) ?? false).toList(),
+    };

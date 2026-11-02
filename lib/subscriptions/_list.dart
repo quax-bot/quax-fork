@@ -55,8 +55,7 @@ class SubscriptionRow extends StatelessWidget {
   final bool selecting;
   final VoidCallback onToggleSelected;
 
-  /// Set while the custom order can be changed.
-  final int? dragIndex;
+  final int? reorderIndex;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
 
@@ -67,7 +66,7 @@ class SubscriptionRow extends StatelessWidget {
       required this.selected,
       required this.selecting,
       required this.onToggleSelected,
-      this.dragIndex,
+      this.reorderIndex,
       this.onMoveUp,
       this.onMoveDown});
 
@@ -81,36 +80,36 @@ class SubscriptionRow extends StatelessWidget {
         CustomSemanticsAction(label: l10n.move_down): ?onMoveDown,
       },
       child: ListTile(
-      selected: selected,
-      selectedTileColor: colors.secondaryContainer.withValues(alpha: 0.6),
-      leading: Semantics(
-        button: true,
         selected: selected,
-        label: l10n.select_subscription(subscription.name),
-        excludeSemantics: true,
-        child: InkResponse(
-          onTap: onToggleSelected,
-          radius: 24,
-          child: SizedBox.square(
-            dimension: 48,
-            child: Center(child: SubscriptionAvatar(subscription: subscription, selected: selected)),
+        selectedTileColor: colors.secondaryContainer.withValues(alpha: 0.6),
+        leading: Semantics(
+          button: true,
+          selected: selected,
+          label: l10n.select_subscription(subscription.name),
+          excludeSemantics: true,
+          child: InkResponse(
+            onTap: onToggleSelected,
+            radius: 24,
+            child: SizedBox.square(
+              dimension: 48,
+              child: Center(child: SubscriptionAvatar(subscription: subscription, selected: selected)),
+            ),
           ),
         ),
-      ),
-      title: _SubscriptionTitle(subscription: subscription),
-      subtitle: _SubscriptionSubtitle(subscription: subscription, groups: groups),
-      trailing: dragIndex == null
-          ? null
-          : ReorderableDragStartListener(
-              index: dragIndex!, child: const ExcludeSemantics(child: Icon(Icons.drag_indicator))),
-      onTap: selecting ? onToggleSelected : () => openSubscription(context, subscription),
-      onLongPress: onToggleSelected,
+        title: _SubscriptionTitle(subscription: subscription),
+        subtitle: _SubscriptionSubtitle(subscription: subscription, groups: groups),
+        trailing: reorderIndex == null
+            ? null
+            : ReorderableDragStartListener(
+                index: reorderIndex!, child: const ExcludeSemantics(child: Icon(Icons.drag_indicator))),
+        onTap: selecting ? onToggleSelected : () => openSubscription(context, subscription),
+        onLongPress: onToggleSelected,
       ),
     );
   }
 }
 
-String subscriptionLine(L10n l10n, Subscription subscription) => switch (subscription) {
+String subscriptionHandle(L10n l10n, Subscription subscription) => switch (subscription) {
       UserSubscription() => '@${subscription.screenName}',
       SearchSubscription() => l10n.search_term,
     };
@@ -143,14 +142,14 @@ class _SubscriptionSubtitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
-    final hidden = subscription is UserSubscription && !subscription.inFeed;
+    final hiddenFromFeed = subscription is UserSubscription && !subscription.inFeed;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Flexible(child: Text(subscriptionLine(l10n, subscription), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            if (hidden) ...[
+            Flexible(child: Text(subscriptionHandle(l10n, subscription), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            if (hiddenFromFeed) ...[
               const SizedBox(width: 6),
               Icon(Icons.visibility_off_outlined, size: 16, semanticLabel: l10n.hidden_from_main_feed),
             ],
@@ -165,7 +164,8 @@ class _SubscriptionSubtitle extends StatelessWidget {
   }
 }
 
-/// Shows two groups at most, then how many more.
+const _maxShownGroupTags = 2;
+
 class GroupTags extends StatelessWidget {
   final List<SubscriptionGroup> groups;
 
@@ -178,12 +178,12 @@ class GroupTags extends StatelessWidget {
       spacing: 4,
       runSpacing: 4,
       children: [
-        ...groups.take(2).map((group) {
+        ...groups.take(_maxShownGroupTags).map((group) {
           final tone = groupTone(context, group.color);
           return _Tag(icon: group.iconData, label: group.name, background: tone.background, foreground: tone.foreground);
         }),
-        if (groups.length > 2)
-          _Tag(label: '+${groups.length - 2}', background: colors.surfaceContainerHighest, foreground: colors.onSurfaceVariant),
+        if (groups.length > _maxShownGroupTags)
+          _Tag(label: '+${groups.length - _maxShownGroupTags}', background: colors.surfaceContainerHighest, foreground: colors.onSurfaceVariant),
       ],
     );
   }
@@ -215,16 +215,16 @@ class _Tag extends StatelessWidget {
 }
 
 class KindFilters extends StatelessWidget {
-  final List<Subscription> searched;
+  final List<Subscription> subscriptions;
   final SubscriptionKind? chosen;
   final ValueChanged<SubscriptionKind?> onChosen;
 
-  const KindFilters({super.key, required this.searched, required this.chosen, required this.onChosen});
+  const KindFilters({super.key, required this.subscriptions, required this.chosen, required this.onChosen});
 
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
-    final counts = countByKind(searched);
+    final counts = countByKind(subscriptions);
     Widget chip(String label, int count, SubscriptionKind? kind) => FilterChip(
           label: Text(l10n.label_with_count(label, count)),
           labelStyle: Theme.of(context).textTheme.labelMedium,
@@ -240,8 +240,8 @@ class KindFilters extends StatelessWidget {
       child: Wrap(
         spacing: 8,
         children: [
-          chip(l10n.all, searched.length, null),
-          for (final kind in filterKinds(searched, chosen))
+          chip(l10n.all, subscriptions.length, null),
+          for (final kind in kindsToFilterBy(subscriptions, chosen))
             chip(kindLabel(l10n, kind), counts[kind] ?? 0, kind),
         ],
       ),
@@ -256,10 +256,10 @@ String kindLabel(L10n l10n, SubscriptionKind kind) => switch (kind) {
 
 class SortControls extends StatelessWidget {
   final SubscriptionOrder order;
-  final VoidCallback onCycle;
+  final VoidCallback onNextSort;
   final VoidCallback onReverse;
 
-  const SortControls({super.key, required this.order, required this.onCycle, required this.onReverse});
+  const SortControls({super.key, required this.order, required this.onNextSort, required this.onReverse});
 
   @override
   Widget build(BuildContext context) {
@@ -282,7 +282,7 @@ class SortControls extends StatelessWidget {
         Tooltip(
           message: l10n.sort_by,
           child: TextButton.icon(
-            onPressed: onCycle,
+            onPressed: onNextSort,
             icon: const Icon(Icons.swap_vert, size: 18),
             label: Text(label, semanticsLabel: l10n.sort_by_value(label)),
           ),

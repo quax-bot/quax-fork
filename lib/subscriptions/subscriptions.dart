@@ -18,6 +18,7 @@ import 'package:quax/subscriptions/subscriptions_page_model.dart';
 import 'package:quax/subscriptions/users_model.dart';
 import 'package:quax/ui/back_interceptors.dart';
 import 'package:quax/ui/errors.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
   final ScrollController scrollController;
@@ -29,9 +30,12 @@ class SubscriptionsScreen extends StatefulWidget {
 }
 
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
-  late final SubscriptionsPageModel _page = SubscriptionsPageModel(PrefService.of(context, listen: false));
+  late final SubscriptionsPageModel _pageModel = SubscriptionsPageModel(PrefService.of(context, listen: false));
   late final BackInterceptors _backInterceptors = context.read<BackInterceptors>();
-  final TextEditingController _query = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+
+  // The page stays alive in another tab while its search field has the focus
+  bool _visible = true;
 
   @override
   void initState() {
@@ -42,17 +46,20 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   @override
   void dispose() {
     _backInterceptors.remove(_onBack);
-    _query.dispose();
-    _page.destroy();
+    _searchController.dispose();
+    _pageModel.destroy();
     super.dispose();
   }
 
   bool _onBack() {
-    if (_page.state.selecting) {
-      _page.clearSelection();
+    if (!_visible) {
+      return false;
+    }
+    if (_pageModel.state.selecting) {
+      _pageModel.clearSelection();
       return true;
     }
-    if (_page.state.searching) {
+    if (_pageModel.state.searching) {
       _closeSearch();
       return true;
     }
@@ -60,8 +67,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   void _closeSearch() {
-    _query.clear();
-    _page.closeSearch();
+    _searchController.clear();
+    _pageModel.closeSearch();
   }
 
   @override
@@ -76,14 +83,18 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         ),
       ),
       onState: (_, subscriptions) => ScopedBuilder<SubscriptionsPageModel, SubscriptionsPageState>(
-        store: _page,
-        onState: (_, page) => Scaffold(
-          appBar: _appBar(context, page, subscriptions),
-          body: _SubscriptionsBody(
-            page: _page,
-            pageState: page,
-            subscriptions: subscriptions,
-            scrollController: widget.scrollController,
+        store: _pageModel,
+        onState: (_, page) => VisibilityDetector(
+          key: const Key('subscriptions-page'),
+          onVisibilityChanged: (info) => _visible = info.visibleFraction > 0,
+          child: Scaffold(
+            appBar: _appBar(context, page, subscriptions),
+            body: _SubscriptionsBody(
+              pageModel: _pageModel,
+              page: page,
+              subscriptions: subscriptions,
+              scrollController: widget.scrollController,
+            ),
           ),
         ),
       ),
@@ -94,7 +105,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final l10n = L10n.of(context);
     if (page.selecting) {
       final selected = subscriptions.where((s) => page.selected.contains(subscriptionKey(s))).toList();
-      return SelectionAppBar(selected: selected, onClear: _page.clearSelection);
+      return SelectionAppBar(selected: selected, onClear: _pageModel.clearSelection);
     }
     final settings = IconButton(
       icon: const Icon(Icons.settings),
@@ -105,7 +116,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       return AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back), tooltip: l10n.close, onPressed: _closeSearch),
         titleSpacing: 0,
-        title: CompactSearchField(controller: _query, onChanged: _page.search, autofocus: true),
+        title: CompactSearchField(controller: _searchController, onChanged: _pageModel.search, autofocus: true),
         actions: [settings],
       );
     }
@@ -115,7 +126,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         IconButton(
           icon: const Icon(Icons.search),
           tooltip: l10n.search_your_subscriptions,
-          onPressed: _page.openSearch,
+          onPressed: _pageModel.openSearch,
         ),
         IconButton(
           icon: const Icon(Icons.input),
@@ -129,14 +140,14 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 }
 
 class _SubscriptionsBody extends StatelessWidget {
-  final SubscriptionsPageModel page;
-  final SubscriptionsPageState pageState;
+  final SubscriptionsPageModel pageModel;
+  final SubscriptionsPageState page;
   final List<Subscription> subscriptions;
   final ScrollController scrollController;
 
   const _SubscriptionsBody({
+    required this.pageModel,
     required this.page,
-    required this.pageState,
     required this.subscriptions,
     required this.scrollController,
   });
@@ -153,39 +164,42 @@ class _SubscriptionsBody extends StatelessWidget {
   }
 
   Widget _content(BuildContext context, List<SubscriptionGroup> groups, Map<String, Set<String>> members) {
-    final searched = searchedSubscriptions(subscriptions, pageState.trimmedQuery);
-    final shown = ofKind(searched, pageState.kind);
-    final visibleGroups = shownGroups(groups, members, searched, pageState.trimmedQuery);
-    final groupsOf = _groupsBySubscription(groups, members);
+    final (:matching, :shown) = filterSubscriptions(subscriptions, page.normalizedQuery, page.kind);
+    final matchingGroups = groupsMatchingSearch(groups, members, matching, page.normalizedQuery);
     final order = context.read<SubscriptionsModel>().order;
-    final canReorder =
-        order.sort == SubscriptionSort.custom && !pageState.selecting && !pageState.searching && shown.length > 1;
+    final showGroupsSection = !page.searching || matchingGroups.isNotEmpty;
 
     return CustomScrollView(
       controller: scrollController,
       slivers: [
-        if (visibleGroups.isNotEmpty || !pageState.searching) ..._groupSlivers(visibleGroups),
+        if (showGroupsSection) ..._groupSlivers(matchingGroups),
         SliverToBoxAdapter(child: _listHeader(context, order)),
-        if (searched.isNotEmpty)
+        if (matching.isNotEmpty)
           SliverToBoxAdapter(
-            child: KindFilters(searched: searched, chosen: pageState.kind, onChosen: page.showKind),
+            child: KindFilters(subscriptions: matching, chosen: page.kind, onChosen: pageModel.showKind),
           ),
-        if (shown.isEmpty)
+        // When other filters hold matches of the search, their chips already say so
+        if (shown.isEmpty && (page.normalizedQuery.isEmpty || matching.isEmpty))
           SliverToBoxAdapter(child: _emptyState(context))
         else
-          _rows(context, shown, groupsOf, canReorder),
+          _rows(context, shown, groupsBySubscription(groups, members), canReorder: _canReorder(order, shown)),
         SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 16)),
       ],
     );
   }
 
-  List<Widget> _groupSlivers(List<SubscriptionGroup> visible) {
-    final collapsed = pageState.groupsCollapsed && !pageState.searching;
+  /// Dragging works in the custom order only, with the whole list shown and nothing selected.
+  bool _canReorder(SubscriptionOrder order, List<Subscription> shown) =>
+      order.sort == SubscriptionSort.custom && !page.selecting && !page.searching && shown.length > 1;
+
+  List<Widget> _groupSlivers(List<SubscriptionGroup> groups) {
+    // Groups matching a search show even when the section is collapsed
+    final expanded = page.searching || !page.groupsCollapsed;
     return [
       SliverToBoxAdapter(
-        child: GroupsHeader(collapsed: collapsed, onToggleCollapsed: page.toggleGroupsCollapsed),
+        child: GroupsHeader(collapsed: !expanded, onToggleCollapsed: pageModel.toggleGroupsCollapsed),
       ),
-      if (!collapsed) SliverToBoxAdapter(child: GroupsGrid(groups: visible)),
+      if (expanded) SliverToBoxAdapter(child: GroupsGrid(groups: groups)),
     ];
   }
 
@@ -196,7 +210,7 @@ class _SubscriptionsBody extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: SectionTitle(L10n.of(context).followed)),
-          SortControls(order: order, onCycle: model.cycleSort, onReverse: model.reverseOrder),
+          SortControls(order: order, onNextSort: model.showNextSort, onReverse: model.reverseOrder),
         ],
       ),
     );
@@ -205,9 +219,9 @@ class _SubscriptionsBody extends StatelessWidget {
   Widget _rows(
     BuildContext context,
     List<Subscription> shown,
-    Map<String, List<SubscriptionGroup>> groupsOf,
-    bool canReorder,
-  ) {
+    Map<String, List<SubscriptionGroup>> groupsOf, {
+    required bool canReorder,
+  }) {
     final model = context.read<SubscriptionsModel>();
     Widget row(int index) {
       final subscription = shown[index];
@@ -215,10 +229,10 @@ class _SubscriptionsBody extends StatelessWidget {
         key: ValueKey(subscriptionKey(subscription)),
         subscription: subscription,
         groups: groupsOf[subscription.id] ?? const [],
-        selected: pageState.selected.contains(subscriptionKey(subscription)),
-        selecting: pageState.selecting,
-        onToggleSelected: () => page.toggleSelected(subscription),
-        dragIndex: canReorder ? index : null,
+        selected: page.selected.contains(subscriptionKey(subscription)),
+        selecting: page.selecting,
+        onToggleSelected: () => pageModel.toggleSelected(subscription),
+        reorderIndex: canReorder ? index : null,
         onMoveUp: canReorder && index > 0 ? () => model.moveSubscription(shown, index, index - 1) : null,
         onMoveDown: canReorder && index < shown.length - 1
             ? () => model.moveSubscription(shown, index, index + 1)
@@ -239,9 +253,9 @@ class _SubscriptionsBody extends StatelessWidget {
 
   Widget _emptyState(BuildContext context) {
     final l10n = L10n.of(context);
-    final query = pageState.query?.trim() ?? '';
+    final query = page.query?.trim() ?? '';
     if (query.isNotEmpty) {
-      final tab = pageState.kind == SubscriptionKind.user ? SearchTab.people : SearchTab.top;
+      final tab = page.kind == SubscriptionKind.user ? SearchTab.people : SearchTab.top;
       return EmptySubscriptions(
         icon: Icons.search_off,
         message: l10n.no_subscription_matches(query),
@@ -250,7 +264,7 @@ class _SubscriptionsBody extends StatelessWidget {
         onAction: () => Navigator.pushNamed(context, routeSearch, arguments: SearchArguments(tab, query: query)),
       );
     }
-    if (pageState.kind == SubscriptionKind.search) {
+    if (page.kind == SubscriptionKind.search) {
       return EmptySubscriptions(
         icon: SubscriptionKind.search.icon,
         message: l10n.no_saved_searches,
@@ -272,16 +286,6 @@ class _SubscriptionsBody extends StatelessWidget {
     );
   }
 }
-
-Map<String, List<SubscriptionGroup>> _groupsBySubscription(
-  List<SubscriptionGroup> groups,
-  Map<String, Set<String>> members,
-) => groups.fold({}, (bySubscription, group) {
-  for (final id in members[group.id] ?? const <String>{}) {
-    bySubscription.putIfAbsent(id, () => []).add(group);
-  }
-  return bySubscription;
-});
 
 void openImport(BuildContext context) =>
     Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionImportScreen()));

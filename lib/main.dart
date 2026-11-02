@@ -658,39 +658,7 @@ class _DefaultPageState extends State<DefaultPage> {
           prefix: (l10n) => l10n.unable_to_run_the_database_migrations);
     }
 
-    return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop || context.read<BackInterceptors>().intercept()) return;
-          var prefService = PrefService.of(context);
-          if (!prefService.get(optionConfirmClose)) {
-            SystemNavigator.pop();
-            return;
-          }
-
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (c) => AlertDialog(
-              title: Text(L10n.current.are_you_sure),
-              content: Text(L10n.current.confirm_close_fritter),
-              actions: [
-                TextButton(
-                  child: Text(L10n.current.no),
-                  onPressed: () => Navigator.pop(c, false),
-                ),
-                TextButton(
-                  child: Text(L10n.current.yes),
-                  onPressed: () => Navigator.pop(c, true),
-                ),
-              ],
-            ),
-          );
-
-          if (confirmed == true && context.mounted) {
-            SystemNavigator.pop();
-          }
-        },
-        child: const HomeScreen());
+    return const BackInterceptorsScope(onBackNotUsed: _closeApp, child: HomeScreen());
   }
 
   @override
@@ -719,5 +687,35 @@ class NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
   ) {
     // No animation, simply return the child
     return child;
+  }
+}
+
+Future<void> _closeApp(BuildContext context) async {
+  var prefService = PrefService.of(context);
+  if (!prefService.get(optionConfirmClose)) {
+    SystemNavigator.pop();
+    return;
+  }
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(L10n.current.are_you_sure),
+      content: Text(L10n.current.confirm_close_fritter),
+      actions: [
+        TextButton(
+          child: Text(L10n.current.no),
+          onPressed: () => Navigator.pop(c, false),
+        ),
+        TextButton(
+          child: Text(L10n.current.yes),
+          onPressed: () => Navigator.pop(c, true),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed == true && context.mounted) {
+    SystemNavigator.pop();
   }
 }

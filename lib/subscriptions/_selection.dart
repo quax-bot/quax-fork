@@ -22,7 +22,7 @@ class SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
     final l10n = L10n.of(context);
     final colors = Theme.of(context).colorScheme;
     final accounts = selected.whereType<UserSubscription>().toList();
-    final allHidden = accounts.isNotEmpty && accounts.every((s) => !s.inFeed);
+    final allHiddenFromFeed = accounts.isNotEmpty && accounts.every((s) => !s.inFeed);
     return AppBar(
       backgroundColor: colors.secondaryContainer,
       foregroundColor: colors.onSecondaryContainer,
@@ -36,9 +36,9 @@ class SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         if (accounts.isNotEmpty)
           IconButton(
-            icon: Icon(allHidden ? Icons.visibility : Icons.visibility_off_outlined),
-            tooltip: allHidden ? l10n.show_in_main_feed : l10n.hide_from_main_feed,
-            onPressed: () => context.read<SubscriptionsModel>().setInFeed(accounts, allHidden),
+            icon: Icon(allHiddenFromFeed ? Icons.visibility : Icons.visibility_off_outlined),
+            tooltip: allHiddenFromFeed ? l10n.show_in_main_feed : l10n.hide_from_main_feed,
+            onPressed: () => context.read<SubscriptionsModel>().setShownInMainFeed(accounts, shown: allHiddenFromFeed),
           ),
         IconButton(
           icon: const Icon(Icons.person_remove_outlined),
@@ -53,19 +53,20 @@ class SelectionAppBar extends StatelessWidget implements PreferredSizeWidget {
     final l10n = L10n.of(context);
     final model = context.read<SubscriptionsModel>();
     final messenger = ScaffoldMessenger.of(context);
-    final removed = await model.unsubscribeAll(selected);
+    // Cleared first, so that a second tap can't unsubscribe again
     onClear();
+    final removed = await model.unsubscribe(selected);
     messenger.showSnackBar(SnackBar(
       content: Text(l10n.n_subscriptions_removed(removed.subscriptions.length)),
-      action: SnackBarAction(label: l10n.undo, onPressed: () => model.restore(removed)),
+      action: SnackBarAction(label: l10n.undo, onPressed: () => model.resubscribe(removed)),
     ));
   }
 }
 
-enum _SheetResult { done, newGroup }
+enum _GroupsSheetChoice { done, newGroup }
 
 Future<void> showGroupsSheet(BuildContext context, List<Subscription> selected, {required VoidCallback onDone}) async {
-  final result = await showModalBottomSheet<_SheetResult>(
+  final choice = await showModalBottomSheet<_GroupsSheetChoice>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
@@ -74,11 +75,14 @@ Future<void> showGroupsSheet(BuildContext context, List<Subscription> selected, 
   if (context.mounted) {
     await context.read<GroupsModel>().reloadGroups();
   }
-  final saved = result == _SheetResult.newGroup &&
-      context.mounted &&
-      await openGroupEditor(context, initialMembers: selected.map((s) => s.id).toSet());
-  if (result == _SheetResult.done || saved) {
-    onDone();
+  switch (choice) {
+    case _GroupsSheetChoice.done:
+      onDone();
+    case _GroupsSheetChoice.newGroup when context.mounted:
+      if (await openGroupEditor(context, initialMembers: selected.map((s) => s.id).toSet())) {
+        onDone();
+      }
+    default:
   }
 }
 
@@ -117,12 +121,12 @@ class _GroupsSheet extends StatelessWidget {
                 child: Row(
                   children: [
                     TextButton.icon(
-                      onPressed: () => Navigator.pop(context, _SheetResult.newGroup),
+                      onPressed: () => Navigator.pop(context, _GroupsSheetChoice.newGroup),
                       icon: const Icon(Icons.add, size: 18),
                       label: Text(l10n.new_group),
                     ),
                     const Spacer(),
-                    FilledButton(onPressed: () => Navigator.pop(context, _SheetResult.done), child: Text(l10n.done)),
+                    FilledButton(onPressed: () => Navigator.pop(context, _GroupsSheetChoice.done), child: Text(l10n.done)),
                   ],
                 ),
               ),
@@ -143,32 +147,44 @@ class _GroupChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = L10n.of(context);
-    final ids = selected.map((s) => s.id).toList();
-    final inGroup = ids.where(members.contains).length;
-    final all = inGroup == ids.length;
+    final selectedIds = selected.map((s) => s.id).toList();
+    final selectedInGroup = selectedIds.where(members.contains).length;
+    final wholeSelectionInGroup = selectedInGroup == selectedIds.length;
     final tone = groupTone(context, group.color);
     return CheckboxListTile(
       tristate: true,
-      value: all ? true : (inGroup == 0 ? false : null),
+      value: wholeSelectionInGroup ? true : (selectedInGroup == 0 ? false : null),
       secondary: CircleAvatar(
         backgroundColor: tone.background,
         child: Icon(group.iconData, color: tone.foreground, size: 22),
       ),
       title: Text(group.name),
-      subtitle: Text(all
-          ? l10n.whole_selection_in_group
-          : inGroup == 0
-              ? membersSummary(context, context.read<SubscriptionsModel>().state.where((s) => members.contains(s.id)))
-              : l10n.part_of_selection_in_group(inGroup, ids.length)),
-      onChanged: (_) async {
-        final groups = context.read<GroupsModel>();
-        final memberships = context.read<GroupMembershipsModel>();
-        await (all
-            ? groups.removeMembers(group.id, ids)
-            : groups.addMembers(group.id, ids.where((id) => !members.contains(id))));
-        await memberships.reload();
-      },
+      subtitle: Text(_subtitle(context, selectedInGroup, selectedIds.length)),
+      onChanged: (_) => _toggle(context, selectedIds),
     );
+  }
+
+  /// Reads the members again, as a quick second tap comes before the sheet shows the first one.
+  Future<void> _toggle(BuildContext context, List<String> selectedIds) async {
+    final groups = context.read<GroupsModel>();
+    final memberships = context.read<GroupMembershipsModel>();
+    final members = memberships.state[group.id] ?? const {};
+    await (selectedIds.every(members.contains)
+        ? groups.removeMembers(group.id, selectedIds)
+        : groups.addMembers(group.id, selectedIds.where((id) => !members.contains(id))));
+    await memberships.reload();
+  }
+
+  String _subtitle(BuildContext context, int selectedInGroup, int selectedCount) {
+    final l10n = L10n.of(context);
+    if (selectedInGroup == selectedCount) {
+      return l10n.whole_selection_in_group;
+    }
+    if (selectedInGroup > 0) {
+      return l10n.part_of_selection_in_group(selectedInGroup, selectedCount);
+    }
+    // None of the selection is in the group yet: it shows what the group holds
+    final groupMembers = context.read<SubscriptionsModel>().state.where((s) => members.contains(s.id));
+    return membersSummary(context, groupMembers);
   }
 }

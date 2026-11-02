@@ -17,7 +17,7 @@ void main() {
     final order = SubscriptionOrder(
         sort: SubscriptionSort.custom,
         ascending: true,
-        custom: [subscriptionKey(_account('zoe')), subscriptionKey(_account('bob'))]);
+        customKeys: [subscriptionKey(_account('zoe')), subscriptionKey(_account('bob'))]);
 
     final names = order.apply([_account('bob'), _account('new'), _account('zoe'), _account('alice')]).map((s) => s.name);
 

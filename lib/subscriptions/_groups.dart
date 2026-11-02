@@ -10,7 +10,7 @@ import 'package:quax/subscriptions/subscription_kind.dart';
 
 typedef GroupTone = ({Color background, Color foreground});
 
-final _schemes = <(int, int, Brightness), ColorScheme>{};
+final _schemeCache = <(int, int, Brightness), ColorScheme>{};
 
 /// The color of a group, adapted to the theme: leaning toward its accent color, light or dark like it.
 GroupTone groupTone(BuildContext context, Color? color) {
@@ -19,7 +19,7 @@ GroupTone groupTone(BuildContext context, Color? color) {
   if (color == null) {
     return (background: theme.colorScheme.secondaryContainer, foreground: theme.colorScheme.onSecondaryContainer);
   }
-  final scheme = _schemes.putIfAbsent((color.toARGB32(), primary.toARGB32(), theme.brightness),
+  final scheme = _schemeCache.putIfAbsent((color.toARGB32(), primary.toARGB32(), theme.brightness),
       () => ColorScheme.fromSeed(seedColor: color.harmonizeWith(primary), brightness: theme.brightness));
   return (background: scheme.primaryContainer, foreground: scheme.onPrimaryContainer);
 }
@@ -82,14 +82,17 @@ class GroupsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tiles grow taller with the system font size, so that two lines of name still fit
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 100,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
+        childAspectRatio: 1 / textScale,
       ),
       itemCount: groups.length + 1,
       itemBuilder: (context, index) => index < groups.length ? GroupTile(group: groups[index]) : const _NewGroupTile(),
@@ -109,7 +112,7 @@ class GroupTile extends StatelessWidget {
     void edit() => openGroupEditor(context, id: group.id);
     return Semantics(
       customSemanticsActions: {CustomSemanticsAction(label: L10n.of(context).edit_group): edit},
-      child: _Tile(
+      child: _GroupGridTile(
         icon: group.iconData,
         label: group.name,
         background: tone.background,
@@ -128,7 +131,7 @@ class _NewGroupTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return _Tile(
+    return _GroupGridTile(
       icon: Icons.add,
       label: L10n.of(context).new_group,
       foreground: colors.primary,
@@ -138,7 +141,7 @@ class _NewGroupTile extends StatelessWidget {
   }
 }
 
-class _Tile extends StatelessWidget {
+class _GroupGridTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color? background;
@@ -147,7 +150,7 @@ class _Tile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
-  const _Tile(
+  const _GroupGridTile(
       {required this.icon,
       required this.label,
       this.background,
@@ -172,11 +175,13 @@ class _Tile extends StatelessWidget {
               children: [
                 Icon(icon, size: 22, color: foreground),
                 const SizedBox(height: 4),
-                Text(label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(color: foreground, height: 1.25)),
+                Flexible(
+                  child: Text(label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(color: foreground, height: 1.25)),
+                ),
               ],
             ),
           ),

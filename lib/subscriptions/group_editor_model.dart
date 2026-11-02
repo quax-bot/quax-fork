@@ -31,7 +31,7 @@ class GroupDraft {
     members: members ?? this.members,
   );
 
-  bool sameAs(GroupDraft other) =>
+  bool hasSameContentAs(GroupDraft other) =>
       name == other.name &&
       icon == other.icon &&
       color?.toARGB32() == other.color?.toARGB32() &&
@@ -48,8 +48,8 @@ class GroupEditorState {
   final String query;
   final SubscriptionKind? kind;
   final bool showNameError;
-  final bool closing;
-  final bool allColors;
+  final bool isClosing;
+  final bool showsAllColors;
 
   const GroupEditorState({
     required this.original,
@@ -58,19 +58,19 @@ class GroupEditorState {
     this.query = '',
     this.kind,
     this.showNameError = false,
-    this.closing = false,
-    this.allColors = false,
+    this.isClosing = false,
+    this.showsAllColors = false,
   });
 
-  bool get dirty => !draft.sameAs(original);
+  bool get hasUnsavedChanges => !draft.hasSameContentAs(original);
 
   GroupEditorState copyWith({
     GroupDraft? draft,
     String? query,
     SubscriptionKind? Function()? kind,
     bool? showNameError,
-    bool? closing,
-    bool? allColors,
+    bool? isClosing,
+    bool? showsAllColors,
   }) => GroupEditorState(
     original: original,
     draft: draft ?? this.draft,
@@ -78,8 +78,8 @@ class GroupEditorState {
     query: query ?? this.query,
     kind: kind == null ? this.kind : kind(),
     showNameError: showNameError ?? this.showNameError,
-    closing: closing ?? this.closing,
-    allColors: allColors ?? this.allColors,
+    isClosing: isClosing ?? this.isClosing,
+    showsAllColors: showsAllColors ?? this.showsAllColors,
   );
 }
 
@@ -109,7 +109,7 @@ class GroupEditorModel extends Store<GroupEditorState?> {
 
   void pickColor(Color? color) => _edit((s) => s.copyWith(draft: s.draft.copyWith(color: () => color)));
 
-  void showAllColors() => _edit((s) => s.copyWith(allColors: true));
+  void showAllColors() => _edit((s) => s.copyWith(showsAllColors: true));
 
   void search(String query) => _edit((s) => s.copyWith(query: query));
 
@@ -123,7 +123,7 @@ class GroupEditorModel extends Store<GroupEditorState?> {
   /// Returns false when the group has no name, or is already closing.
   Future<bool> save() async {
     final current = state;
-    if (current == null || current.closing) {
+    if (current == null || current.isClosing) {
       return false;
     }
     final name = current.draft.name.trim();
@@ -131,7 +131,7 @@ class GroupEditorModel extends Store<GroupEditorState?> {
       update(current.copyWith(showNameError: true));
       return false;
     }
-    update(current.copyWith(closing: true));
+    update(current.copyWith(isClosing: true));
     final draft = current.draft;
     await groups.saveGroup(draft.id, name, draft.icon, draft.color, draft.members);
     return true;
@@ -141,7 +141,7 @@ class GroupEditorModel extends Store<GroupEditorState?> {
     final current = state;
     final id = current?.draft.id;
     if (current != null && id != null) {
-      update(current.copyWith(closing: true));
+      update(current.copyWith(isClosing: true));
       await groups.deleteGroup(id);
     }
   }

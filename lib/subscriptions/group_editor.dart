@@ -61,14 +61,14 @@ class GroupEditorScreen extends StatefulWidget {
 
 class _GroupEditorScreenState extends State<GroupEditorScreen> {
   late final GroupEditorModel _model = GroupEditorModel(context.read<GroupsModel>());
-  final TextEditingController _name = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _model.load(widget.id, widget.initialMembers, context.read<SubscriptionsModel>().state).then((state) {
       if (mounted) {
-        _name.text = state.draft.name;
+        _nameController.text = state.draft.name;
         _model.update(state);
       }
     });
@@ -76,7 +76,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
 
   @override
   void dispose() {
-    _name.dispose();
+    _nameController.dispose();
     _model.destroy();
     super.dispose();
   }
@@ -96,7 +96,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         return PopScope(
-          canPop: !state.dirty || state.closing,
+          canPop: !state.hasUnsavedChanges || state.isClosing,
           onPopInvokedWithResult: (didPop, _) async {
             if (!didPop && await _confirmDiscard(context) && context.mounted) {
               Navigator.pop(context);
@@ -104,7 +104,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
           },
           child: Scaffold(
             appBar: _appBar(context, state),
-            body: _GroupEditorBody(model: _model, state: state, nameController: _name),
+            body: _GroupEditorBody(model: _model, state: state, nameController: _nameController),
           ),
         );
       },
@@ -121,7 +121,7 @@ class _GroupEditorScreenState extends State<GroupEditorScreen> {
       ),
       title: Text(state.draft.id == null ? l10n.new_group : state.original.name),
       actions: [
-        FilledButton(onPressed: state.closing || !state.dirty ? null : _save, child: Text(l10n.save)),
+        FilledButton(onPressed: state.isClosing || !state.hasUnsavedChanges ? null : _save, child: Text(l10n.save)),
         if (state.draft.id == null)
           const SizedBox(width: 12)
         else
@@ -190,17 +190,15 @@ class _GroupEditorBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
-    final subscriptions = state.subscriptions;
-    final searched = searchedSubscriptions(subscriptions, state.query.trim().toLowerCase());
-    final shown = ofKind(searched, state.kind);
+    final (:matching, :shown) = filterSubscriptions(state.subscriptions, normalizeQuery(state.query), state.kind);
     // The members of the group as it opened stay first, so that ticking a box never moves a row
-    final wereIn = shown.where((s) => state.original.members.contains(s.id)).toList();
-    final others = shown.where((s) => !state.original.members.contains(s.id)).toList();
+    final membersWhenOpened = shown.where((s) => state.original.members.contains(s.id)).toList();
+    final otherSubscriptions = shown.where((s) => !state.original.members.contains(s.id)).toList();
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
-          child: _Identity(model: model, state: state, nameController: nameController),
+          child: _NameAndAppearance(model: model, state: state, nameController: nameController),
         ),
         SliverToBoxAdapter(
           child: Padding(
@@ -209,10 +207,10 @@ class _GroupEditorBody extends StatelessWidget {
           ),
         ),
         SliverToBoxAdapter(
-          child: KindFilters(searched: searched, chosen: state.kind, onChosen: model.showKind),
+          child: KindFilters(subscriptions: matching, chosen: state.kind, onChosen: model.showKind),
         ),
-        ..._section(context, l10n.section_with_count(l10n.in_the_group, state.draft.members.length), wereIn),
-        ..._section(context, l10n.other_subscriptions, others),
+        ..._section(context, l10n.section_with_count(l10n.in_the_group, state.draft.members.length), membersWhenOpened),
+        ..._section(context, l10n.other_subscriptions, otherSubscriptions),
         SliverToBoxAdapter(child: SizedBox(height: MediaQuery.paddingOf(context).bottom + 16)),
       ],
     );
@@ -239,7 +237,7 @@ class _GroupEditorBody extends StatelessWidget {
             secondary: SubscriptionAvatar(subscription: subscription),
             title: Text(subscription.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text(
-              subscriptionLine(L10n.of(context), subscription),
+              subscriptionHandle(L10n.of(context), subscription),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -252,12 +250,12 @@ class _GroupEditorBody extends StatelessWidget {
   }
 }
 
-class _Identity extends StatelessWidget {
+class _NameAndAppearance extends StatelessWidget {
   final GroupEditorModel model;
   final GroupEditorState state;
   final TextEditingController nameController;
 
-  const _Identity({required this.model, required this.state, required this.nameController});
+  const _NameAndAppearance({required this.model, required this.state, required this.nameController});
 
   @override
   Widget build(BuildContext context) {
@@ -270,7 +268,7 @@ class _Identity extends StatelessWidget {
           _AppearanceButton(
             tone: groupTone(context, state.draft.color),
             icon: state.draft.icon,
-            onPressed: () => _openAppearance(context, model),
+            onPressed: () => _openAppearanceSheet(context, model),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -342,21 +340,21 @@ class _AppearanceButton extends StatelessWidget {
   }
 }
 
-void _openAppearance(BuildContext context, GroupEditorModel model) => showModalBottomSheet<void>(
+void _openAppearanceSheet(BuildContext context, GroupEditorModel model) => showModalBottomSheet<void>(
   context: context,
   showDragHandle: true,
   isScrollControlled: true,
   builder: (_) => ScopedBuilder<GroupEditorModel, GroupEditorState?>(
     store: model,
-    onState: (context, state) => state == null ? const SizedBox.shrink() : _Appearance(model: model, state: state),
+    onState: (context, state) => state == null ? const SizedBox.shrink() : _AppearanceSheet(model: model, state: state),
   ),
 );
 
-class _Appearance extends StatelessWidget {
+class _AppearanceSheet extends StatelessWidget {
   final GroupEditorModel model;
   final GroupEditorState state;
 
-  const _Appearance({required this.model, required this.state});
+  const _AppearanceSheet({required this.model, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +367,7 @@ class _Appearance extends StatelessWidget {
           _Label(l10n.color),
           _ColorChoices(
             selected: state.draft.color,
-            all: state.allColors,
+            showsAll: state.showsAllColors,
             onPicked: model.pickColor,
             onMore: model.showAllColors,
           ),
@@ -386,7 +384,7 @@ class _Appearance extends StatelessWidget {
   }
 }
 
-Widget _grid(int columns, List<Widget> children) => GridView.count(
+Widget _choiceGrid(int columns, List<Widget> children) => GridView.count(
   crossAxisCount: columns,
   shrinkWrap: true,
   physics: const NeverScrollableScrollPhysics(),
@@ -412,11 +410,11 @@ class _Label extends StatelessWidget {
 
 class _ColorChoices extends StatelessWidget {
   final Color? selected;
-  final bool all;
+  final bool showsAll;
   final ValueChanged<Color?> onPicked;
   final VoidCallback onMore;
 
-  const _ColorChoices({required this.selected, required this.all, required this.onPicked, required this.onMore});
+  const _ColorChoices({required this.selected, required this.showsAll, required this.onPicked, required this.onMore});
 
   bool _isSelected(Color? color) => color?.toARGB32() == selected?.toARGB32();
 
@@ -424,19 +422,19 @@ class _ColorChoices extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     final colors = Theme.of(context).colorScheme;
-    // A color picked outside the palette, or outside the quick colors, is shown first
-    final shown = all ? _palette : _quickColors;
-    final choices = shown.any(_isSelected) ? shown : [selected, ...shown.take(shown.length - 1)];
-    return _grid(7, [
+    final choices = showsAll
+        ? [if (!_palette.any(_isSelected)) selected, ..._palette]
+        : _withSelectedFirst(_quickColors, selected, _isSelected);
+    return _choiceGrid(7, [
       ...choices.map(
         (color) => _ColorDot(
           color: color,
-          label: color == null ? l10n.default_color : l10n.color_number(_palette.indexOf(color) + 1),
+          label: _colorLabel(l10n, color),
           selected: _isSelected(color),
           onTap: () => onPicked(color),
         ),
       ),
-      if (!all)
+      if (!showsAll)
         IconButton(
           tooltip: l10n.more_colors,
           style: IconButton.styleFrom(
@@ -498,7 +496,7 @@ class _IconChoices extends StatelessWidget {
       context,
       configuration: SinglePickerConfiguration(
         iconPackModes: [IconPack.material],
-        preSelected: _pickerIcon(selected),
+        preSelected: _decodePickerIcon(selected),
         title: Text(l10n.icon, style: theme.textTheme.headlineSmall),
         closeChild: Text(l10n.close, style: TextStyle(color: theme.colorScheme.primary)),
         searchHintText: l10n.search,
@@ -524,8 +522,8 @@ class _IconChoices extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final icons = [if (!_quickIcons.contains(selected)) selected, ..._quickIcons];
-    return _grid(6, [
+    final icons = _withSelectedFirst(_quickIcons, selected, (icon) => icon == selected);
+    return _choiceGrid(6, [
       ...icons.indexed.map((entry) {
         final (index, icon) = entry;
         final isSelected = icon == selected;
@@ -564,7 +562,19 @@ class _IconChoices extends StatelessWidget {
   }
 }
 
-IconPickerIcon? _pickerIcon(String serialized) {
+/// A choice that is not among [choices] takes the first place, and the grid keeps its size.
+List<T> _withSelectedFirst<T>(List<T> choices, T selected, bool Function(T) isSelected) =>
+    choices.any(isSelected) ? choices : [selected, ...choices.take(choices.length - 1)];
+
+String _colorLabel(L10n l10n, Color? color) {
+  if (color == null) {
+    return l10n.default_color;
+  }
+  final index = _palette.indexWhere((choice) => choice?.toARGB32() == color.toARGB32());
+  return index < 0 ? l10n.color : l10n.color_number(index);
+}
+
+IconPickerIcon? _decodePickerIcon(String serialized) {
   try {
     return deserializeIcon(Map<String, dynamic>.from(jsonDecode(serialized) as Map));
   } catch (_) {

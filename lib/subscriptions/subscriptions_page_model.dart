@@ -22,18 +22,16 @@ class SubscriptionsPageState {
 
   bool get selecting => selected.isNotEmpty;
 
-  String get trimmedQuery => query?.trim().toLowerCase() ?? '';
+  String get normalizedQuery => normalizeQuery(query);
 
-  SubscriptionsPageState copyWith({SubscriptionKind? Function()? kind, Set<String>? selected, bool? groupsCollapsed}) =>
+  SubscriptionsPageState copyWith(
+          {String? Function()? query, SubscriptionKind? Function()? kind, Set<String>? selected, bool? groupsCollapsed}) =>
       SubscriptionsPageState(
-        query: query,
+        query: query == null ? this.query : query(),
         kind: kind == null ? this.kind : kind(),
         selected: selected ?? this.selected,
         groupsCollapsed: groupsCollapsed ?? this.groupsCollapsed,
       );
-
-  SubscriptionsPageState withQuery(String? query) =>
-      SubscriptionsPageState(query: query, kind: kind, selected: selected, groupsCollapsed: groupsCollapsed);
 }
 
 class SubscriptionsPageModel extends Store<SubscriptionsPageState> {
@@ -42,11 +40,11 @@ class SubscriptionsPageModel extends Store<SubscriptionsPageState> {
   SubscriptionsPageModel(this.prefs)
       : super(SubscriptionsPageState(groupsCollapsed: prefs.get(optionSubscriptionGroupsCollapsed) ?? false));
 
-  void openSearch() => update(state.withQuery(''));
+  void openSearch() => update(state.copyWith(query: () => ''));
 
-  void closeSearch() => update(state.withQuery(null));
+  void closeSearch() => update(state.copyWith(query: () => null));
 
-  void search(String query) => update(state.withQuery(query));
+  void search(String query) => update(state.copyWith(query: () => query));
 
   /// Clears the selection, which could hold subscriptions the new filter hides.
   void showKind(SubscriptionKind? kind) => update(state.copyWith(kind: () => kind, selected: const {}));
@@ -68,21 +66,29 @@ class SubscriptionsPageModel extends Store<SubscriptionsPageState> {
   }
 }
 
+String normalizeQuery(String? query) => query?.trim().toLowerCase() ?? '';
+
 bool matchesQuery(Subscription subscription, String query) =>
     query.isEmpty ||
     subscription.name.toLowerCase().contains(query) ||
     subscription.screenName.toLowerCase().contains(query);
 
 /// [query] is trimmed and lower case.
-List<Subscription> searchedSubscriptions(List<Subscription> all, String query) =>
+List<Subscription> subscriptionsMatching(List<Subscription> all, String query) =>
     all.where((s) => matchesQuery(s, query)).toList();
 
-/// A null [kind] shows every kind.
-List<Subscription> ofKind(List<Subscription> subscriptions, SubscriptionKind? kind) =>
+/// The subscriptions matching [query], and those of them of the chosen [kind]. A null [kind] shows every kind.
+({List<Subscription> matching, List<Subscription> shown}) filterSubscriptions(
+    List<Subscription> all, String query, SubscriptionKind? kind) {
+  final matching = subscriptionsMatching(all, query);
+  return (matching: matching, shown: subscriptionsOfKind(matching, kind));
+}
+
+List<Subscription> subscriptionsOfKind(List<Subscription> subscriptions, SubscriptionKind? kind) =>
     subscriptions.where((s) => kind == null || SubscriptionKind.of(s) == kind).toList();
 
 /// While searching, a group shows if its name matches or if it holds a matching subscription.
-List<SubscriptionGroup> shownGroups(List<SubscriptionGroup> groups, Map<String, Set<String>> members,
+List<SubscriptionGroup> groupsMatchingSearch(List<SubscriptionGroup> groups, Map<String, Set<String>> members,
     List<Subscription> searched, String query) {
   if (query.isEmpty) {
     return groups;
@@ -94,7 +100,7 @@ List<SubscriptionGroup> shownGroups(List<SubscriptionGroup> groups, Map<String, 
 }
 
 /// A filter shows only for kinds with subscriptions, plus the one chosen.
-List<SubscriptionKind> filterKinds(Iterable<Subscription> subscriptions, SubscriptionKind? chosen) {
+List<SubscriptionKind> kindsToFilterBy(Iterable<Subscription> subscriptions, SubscriptionKind? chosen) {
   final present = countByKind(subscriptions).keys;
   return SubscriptionKind.values.where((kind) => kind == chosen || present.contains(kind)).toList();
 }
