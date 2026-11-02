@@ -5,10 +5,9 @@ class CompactSearchField extends StatefulWidget {
   final ValueChanged<String> onChanged;
   final TextEditingController? controller;
   final bool autofocus;
-  final VoidCallback? onTap;
 
   const CompactSearchField(
-      {super.key, required this.onChanged, this.controller, this.autofocus = false, this.onTap});
+      {super.key, required this.onChanged, this.controller, this.autofocus = false});
 
   @override
   State<CompactSearchField> createState() => _CompactSearchFieldState();
@@ -37,7 +36,6 @@ class _CompactSearchFieldState extends State<CompactSearchField> {
     return TextField(
       controller: _controller,
       autofocus: widget.autofocus,
-      onTap: widget.onTap,
       onChanged: widget.onChanged,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(

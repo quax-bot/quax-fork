@@ -205,13 +205,7 @@ class _GroupEditorBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-            // Brought to the top, so that the results show above the keyboard
-            child: Builder(
-              builder: (field) => CompactSearchField(
-                onChanged: model.search,
-                onTap: () => Scrollable.ensureVisible(field, duration: const Duration(milliseconds: 200)),
-              ),
-            ),
+            child: CompactSearchField(onChanged: model.search),
           ),
         ),
         SliverToBoxAdapter(
