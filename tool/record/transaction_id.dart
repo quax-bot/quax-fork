@@ -32,9 +32,14 @@ async (html, nowMs, requests) => {
 }
 ''';
 
-/// What the page needs to sign requests, by the name X gives each file. Kept
-/// loose on purpose: recording must not fail because X renamed something.
-final _recordedScripts = RegExp(r'/(entry-client[\w-]*|client-transaction-id-plugin-[\w-]+|startup-dynamic-[\w-]+|sign\.o-[\w-]+)\.js$');
+/// Every script of the website: X names most of them by a bare hash, so the
+/// files the page needs to sign requests are told apart by their content.
+final _recordedScripts = RegExp(r'^https://abs\.twimg\.com/.*\.js$');
+
+final _entryScript = RegExp(r'/entry-client[\w-]*\.js$');
+
+/// The sign module is imported lazily, then its default export builds the signer.
+final _signModuleImport = RegExp(r'import\(`([./\w-]+\.js)`\)\.then\(\w+=>\w+\.default\(\)\)');
 
 const _port = 9334;
 const _loadTimeout = Duration(seconds: 20);
@@ -47,10 +52,10 @@ Future<void> main() async {
   sources.writeTo(transactionIdFixtures);
   print('Recorded ${sources.files.length} file(s): ${sources.files.keys.join(', ')}');
 
-  final signUrl = sources.files.keys.firstWhereOrNull(_isSignModule);
+  final signUrl = sources.signModuleUrl;
   if (signUrl == null) {
     print('\nChrome downloaded no sign module. Read the recorded files in ${transactionIdFixtures.path}/ to see how');
-    print('X loads it now, then adapt _recordedScripts.');
+    print('X loads it now, then adapt _signModuleImport.');
     return;
   }
   await _recordSignedIds(sources.files[_homePage]!, sources.files[signUrl]!);
@@ -76,36 +81,71 @@ Future<_Sources> _recordInChrome() async {
     } on Exception catch (error) {
       print('Page did not finish loading ($error), keeping what arrived.');
     }
-    await _waitFor(() => bodies.keys.any(_isSignModule));
-    return _Sources({
-      for (final entry in bodies.entries)
-        entry.key: await entry.value.timeout(_loadTimeout, onTimeout: () => ''),
-    });
+    return await _waitForSignModule(bodies);
   } finally {
     browser.disconnect();
     chrome.kill();
     await chrome.exitCode;
-    profile.deleteSync(recursive: true);
+    _deleteProfile(profile);
   }
 }
 
-bool _isSignModule(String url) => url.contains('/sign.o-');
+/// Chrome's helper processes may still write to the profile a moment after
+/// Chrome itself exited, which makes a single deletion fail.
+void _deleteProfile(Directory profile) {
+  for (var attempt = 0; attempt < 5; attempt++) {
+    try {
+      return profile.deleteSync(recursive: true);
+    } on FileSystemException {
+      sleep(const Duration(milliseconds: 500));
+    }
+  }
+}
 
 /// The sign module is imported lazily, a moment after the page itself.
-Future<void> _waitFor(bool Function() condition) async {
+Future<_Sources> _waitForSignModule(Map<String, Future<String>> bodies) async {
   final deadline = DateTime.now().add(_loadTimeout);
-  while (!condition() && DateTime.now().isBefore(deadline)) {
+  while (true) {
+    final sources = _Sources.signChain(await _settled(bodies));
+    if (sources.signModuleUrl != null || DateTime.now().isAfter(deadline)) return sources;
     await Future.delayed(const Duration(milliseconds: 250));
   }
 }
 
+Future<Map<String, String>> _settled(Map<String, Future<String>> bodies) async => {
+      for (final entry in Map.of(bodies).entries)
+        entry.key: await entry.value.timeout(_loadTimeout, onTimeout: () => '').catchError((_) => ''),
+    };
+
 class _Sources {
-  const _Sources(this.files);
+  const _Sources(this.files, {this.signModuleUrl});
+
+  /// Keeps the page, the entry script and, once Chrome downloaded it, the sign
+  /// module with the script importing it. Without the sign module, the page and
+  /// the entry script still show how X loads it now.
+  factory _Sources.signChain(Map<String, String> downloaded) {
+    final page = {for (final url in downloaded.keys.where((url) => url == _homePage || _entryScript.hasMatch(url))) url: downloaded[url]!};
+    final signChain = downloaded.entries
+        .map((script) => (importer: script.key, match: _signModuleImport.firstMatch(script.value)))
+        .where((candidate) => candidate.match != null)
+        .map((candidate) => (importer: candidate.importer, sign: Uri.parse(candidate.importer).resolve(candidate.match!.group(1)!).toString()))
+        .firstWhereOrNull((chain) => downloaded.containsKey(chain.sign));
+    if (signChain == null) return _Sources(page);
+    return _Sources({
+      ...page,
+      signChain.importer: downloaded[signChain.importer]!,
+      signChain.sign: downloaded[signChain.sign]!,
+    }, signModuleUrl: signChain.sign);
+  }
 
   /// URL -> content. The x.com page is stored under the URL the app asks for.
   final Map<String, String> files;
 
+  final String? signModuleUrl;
+
   void writeTo(Directory directory) {
+    // Scripts of an earlier recording X no longer serves.
+    directory.listSync().whereType<File>().where((file) => file.path.endsWith('.js')).forEach((file) => file.deleteSync());
     final names = {for (final url in files.keys) url: url == _homePage ? 'home.html' : Uri.parse(url).pathSegments.last};
     names.forEach((url, name) => File('${directory.path}/$name').writeAsStringSync(files[url]!));
     File('${directory.path}/sources.json').writeAsStringSync(const JsonEncoder.withIndent('  ').convert(names));

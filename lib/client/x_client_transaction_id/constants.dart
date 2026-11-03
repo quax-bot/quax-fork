@@ -10,10 +10,13 @@ final RegExp entryScriptRegex = RegExp(
   r'''["'](https://abs\.twimg\.com/[^"']+/entry-client[\w-]*\.js)["']''',
 );
 
+/// The entry script imports a few bindings from each of the bundles it starts
+/// with, one of which lazily imports the sign module. X names them by a bare
+/// hash, so they are told apart by how they are imported.
 final RegExp signImporterRegex = RegExp(
-  r'''["']([./\w-]*(?:client-transaction-id-plugin|startup-dynamic)-[\w-]+\.js)["']''',
+  r'''import\{[^}]*,[^}]*\}from["']([./\w-]+\.js)["']''',
 );
 
 final RegExp signFileRegex = RegExp(
-  r'''["'`]([./\w-]*sign\.o-[\w-]+\.js)["'`]''',
+  r'''import\(["'`]([./\w-]+\.js)["'`]\)\.then\(\(?(\w+)\)?=>\2\.default\(\)\)''',
 );

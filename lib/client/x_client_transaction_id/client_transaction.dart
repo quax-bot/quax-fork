@@ -155,9 +155,14 @@ class ClientTransaction {
   static Future<Uri> _findSignFileUrl(String homePageHtml, TextFetcher fetch) async {
     final entryUrl = _resolveImport(Uri.https('x.com', '/'), homePageHtml, entryScriptRegex, 'entry script');
     final entryText = await fetch(entryUrl);
-    final importerUrl = _resolveImport(entryUrl, entryText, signImporterRegex, 'sign module importer');
-    final importerText = await fetch(importerUrl);
-    return _resolveImport(importerUrl, importerText, signFileRegex, 'sign module');
+    // The bundle importing the sign module comes after the ones it depends on,
+    // so starting from the last one saves downloading the large shared bundles.
+    final importerUrls = signImporterRegex.allMatches(entryText).map((match) => entryUrl.resolve(match.group(1)!));
+    for (final importerUrl in importerUrls.toList().reversed) {
+      final signFile = signFileRegex.firstMatch(await fetch(importerUrl));
+      if (signFile != null) return importerUrl.resolve(signFile.group(1)!);
+    }
+    throw ClientTransactionIdException("Couldn't find the sign module");
   }
 
   static Uri _resolveImport(Uri base, String text, RegExp regex, String what) {
