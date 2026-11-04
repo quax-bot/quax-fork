@@ -8,8 +8,4 @@ name: Should take the screenshot of a profile
 - assertVisible: "(?s).*@FlutterDev.*"
 - waitForAnimationToEnd:
     timeout: 5000
-- takeScreenshot: profile_top
-- tapOn: "(?s)Posts & Replies.*"
-- waitForAnimationToEnd:
-    timeout: 5000
-- takeScreenshot: profile_replies
+- takeScreenshot: "2"

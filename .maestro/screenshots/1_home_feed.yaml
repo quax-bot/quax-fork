@@ -19,42 +19,13 @@ name: Should take the screenshot of the home feed of a visitor's subscriptions
 - tapOn: "(?s)Home.*"
 - tapOn: "Hide the release notes"
 - assertVisible: "(?s).*(@FlutterDev|@dart_lang).*"
-- waitForAnimationToEnd:
-    timeout: 5000
-- takeScreenshot: feed_0
-- swipe:
-    start: 50%, 70%
-    end: 50%, 40%
-- waitForAnimationToEnd:
-    timeout: 4000
-- takeScreenshot: feed_1
-- swipe:
-    start: 50%, 70%
-    end: 50%, 40%
-- waitForAnimationToEnd:
-    timeout: 4000
-- takeScreenshot: feed_2
-- swipe:
-    start: 50%, 70%
-    end: 50%, 40%
-- waitForAnimationToEnd:
-    timeout: 4000
-- takeScreenshot: feed_3
-- swipe:
-    start: 50%, 70%
-    end: 50%, 40%
-- waitForAnimationToEnd:
-    timeout: 4000
-- takeScreenshot: feed_4
-- swipe:
-    start: 50%, 70%
-    end: 50%, 40%
-- waitForAnimationToEnd:
-    timeout: 4000
-- takeScreenshot: feed_5
-- swipe:
-    start: 50%, 70%
-    end: 50%, 40%
-- waitForAnimationToEnd:
-    timeout: 4000
-- takeScreenshot: feed_6
+# Scrolls past the first posts, whose link previews X no longer serves
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 40%
+      - waitForAnimationToEnd:
+          timeout: 4000
+- takeScreenshot: "1"

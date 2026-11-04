@@ -46,5 +46,16 @@ the APK with the same port. The script fails when a flow fails or the server
 answered nothing. It clears the app, skips the onboarding, makes x.com links
 open QuaX, hides the "app isn't responding" dialogs and turns on dark mode.
 
+With `--screenshots <folder>`, the status bar shows a phone at rest and the
+screenshots the flows take with `takeScreenshot` are copied to that folder.
+The flows of `.maestro/screenshots/` take the screenshots of the README and the
+stores, which the "New version" workflow updates unless told not to:
+
+```bash
+fvm dart run tool/mock_x/emulator_qa.dart \
+  build/app/outputs/flutter-apk/app-profile.apk .maestro/screenshots emulator-output \
+  --screenshots fastlane/metadata/android/en-US/images/phoneScreenshots
+```
+
 [quax-emulated](https://github.com/quax-bot/quax-emulated) runs it on GitHub
 Actions for any ref of QuaX or a fork.
