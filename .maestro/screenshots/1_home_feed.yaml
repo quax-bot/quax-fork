@@ -22,12 +22,39 @@ name: Should take the screenshot of the home feed of a visitor's subscriptions
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: feed_0
-- repeat:
-    times: 6
-    commands:
-      - swipe:
-          start: 50%, 70%
-          end: 50%, 40%
-      - waitForAnimationToEnd:
-          timeout: 4000
-      - takeScreenshot: feed_${repeatIndex}
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: feed_1
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: feed_2
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: feed_3
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: feed_4
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: feed_5
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: feed_6
