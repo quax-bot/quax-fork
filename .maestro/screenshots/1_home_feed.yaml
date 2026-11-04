@@ -1,0 +1,23 @@
+appId: com.teskann.quax
+name: Should take the screenshot of the home feed of a visitor's subscriptions
+---
+- launchApp
+- openLink:
+    link: https://x.com/FlutterDev
+    autoVerify: true
+- assertVisible: "(?s).*@FlutterDev.*"
+- tapOn: "Show menu"
+- tapOn: "Subscribe"
+- openLink:
+    link: https://x.com/dart_lang
+    autoVerify: true
+- assertVisible: "(?s).*@dart_lang.*"
+- tapOn: "Show menu"
+- tapOn: "Subscribe"
+- back
+- back
+- tapOn: "(?s)Home.*"
+- assertVisible: "(?s).*(@FlutterDev|@dart_lang).*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: home_feed

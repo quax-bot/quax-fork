@@ -1,0 +1,15 @@
+appId: com.teskann.quax
+name: Should take the screenshot of the latest results of a search with filters
+---
+- launchApp
+- tapOn: "(?s)Search.*"
+- tapOn:
+    text: "Search"
+    index: 0
+- inputText: '"hot reload" (flutter OR dart) -kotlin'
+- pressKey: Enter
+- tapOn: "(?s)Latest.*"
+- assertVisible: "(?s).*hot reload.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: search

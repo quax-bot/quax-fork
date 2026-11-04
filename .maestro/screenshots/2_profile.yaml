@@ -1,0 +1,11 @@
+appId: com.teskann.quax
+name: Should take the screenshot of a profile
+---
+- launchApp
+- openLink:
+    link: https://x.com/FlutterDev
+    autoVerify: true
+- assertVisible: "(?s).*@FlutterDev.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: profile
