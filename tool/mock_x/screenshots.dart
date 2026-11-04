@@ -12,7 +12,7 @@ const statusBarAtRest = [
   ],
   [
     ...['shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'network'],
-    ...['-e', 'wifi', 'show', '-e', 'level', '4', '-e', 'mobile', 'hide'],
+    ...['-e', 'wifi', 'show', '-e', 'level', '4', '-e', 'fully', 'true', '-e', 'mobile', 'hide'],
   ],
   [
     ...['shell', 'am', 'broadcast', '-a', 'com.android.systemui.demo', '-e', 'command', 'notifications'],
