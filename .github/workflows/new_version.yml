@@ -16,14 +16,68 @@ on:
         description: "Optional custom message to add to the release notes (below the list of commits)"
         required: false
         type: string
+      screenshots:
+        description: "Take the screenshots of the README and the stores again (adds several minutes)"
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write
   actions: write   # needed to dispatch other workflows
 
 jobs:
+  screenshots:
+    name: Take the screenshots
+    if: inputs.screenshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      taken: ${{ steps.take.outcome == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      # A failure must not hold back the version, which then keeps the previous screenshots
+      - name: Take the screenshots
+        id: take
+        continue-on-error: true
+        uses: ./.github/actions/emulator-qa
+        with:
+          flows: .maestro/screenshots
+          screenshots: screenshots
+
+      - name: Warn that the screenshots are not updated
+        if: steps.take.outcome != 'success'
+        run: echo "::warning::The screenshots could not be taken, the version keeps the previous ones. See the emulator-output artifact."
+
+      - name: Upload the screenshots
+        if: steps.take.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: screenshots
+          path: screenshots
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Archive the videos and logs
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: emulator-output
+          path: emulator-output
+          # Maestro writes its screenshots and logs in a .maestro folder
+          include-hidden-files: true
+          retention-days: 7
+
   bump-version:
     name: Bump pubspec version
+    needs: screenshots
+    # Also runs when the screenshots are turned off, which skips their job
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
 
     steps:
@@ -73,11 +127,19 @@ jobs:
           pip install -r requirements.txt
           ./generate-release-notes.sh $VERSION
 
+      - name: Get the screenshots
+        if: needs.screenshots.outputs.taken == 'true'
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          name: screenshots
+          path: fastlane/metadata/android/en-US/images/phoneScreenshots
+
       - name: Commit and tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add pubspec.yaml changelog.md release-notes.md assets/release_notes.json
+          git add pubspec.yaml changelog.md release-notes.md assets/release_notes.json \
+            fastlane/metadata/android/en-US/images/phoneScreenshots
           git commit -m "Bumped to version $VERSION"
           git tag "v$VERSION"
           git push origin HEAD:master

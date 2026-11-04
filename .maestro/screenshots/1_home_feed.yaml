@@ -17,7 +17,17 @@ name: Should take the screenshot of the home feed of a visitor's subscriptions
 - back
 - back
 - tapOn: "(?s)Home.*"
+- tapOn: "Hide the release notes"
 - assertVisible: "(?s).*(@FlutterDev|@dart_lang).*"
 - waitForAnimationToEnd:
     timeout: 5000
-- takeScreenshot: home_feed
+- takeScreenshot: feed_0
+- repeat:
+    times: 6
+    commands:
+      - swipe:
+          start: 50%, 70%
+          end: 50%, 40%
+      - waitForAnimationToEnd:
+          timeout: 4000
+      - takeScreenshot: feed_${repeatIndex}

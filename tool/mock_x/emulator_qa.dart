@@ -2,24 +2,29 @@
 //
 // Installs an APK built with --dart-define=QUAX_MOCK_X=http://localhost:<port> on the running emulator,
 // serves the mock of X on that port, then runs each Maestro flow against it, recording one video per flow.
-// Fails when a flow fails or the mock of X answered nothing.
+// Fails when a flow fails or the mock of X answered nothing. With --screenshots, the status bar is at rest and
+// the screenshots the flows take are copied to that folder.
 //
 //   fvm dart run tool/mock_x/emulator_qa.dart <apk> <flows folder or .yaml file> <output dir> [--port 8787]
+//     [--screenshots <folder>]
 
 import 'dart:io';
 
 import 'app_preferences.dart';
 import 'fixture_map.dart';
 import 'mock_server.dart';
+import 'screenshots.dart';
 import 'video_cut.dart';
 
 const _usage =
     'Usage: dart run tool/mock_x/emulator_qa.dart <apk> <flows folder or .yaml file> <output dir> '
-    '[--port 8787]';
+    '[--port 8787] [--screenshots <folder>]';
 
 Future<void> main(List<String> args) async {
-  final (positional, port) = _parseArgs(args);
-  if (positional.length != 3 || port == null) {
+  final (positional, options) = _parseArgs(args);
+  final port = int.tryParse(options['--port'] ?? '8787');
+  final screenshots = options['--screenshots'];
+  if (positional.length != 3 || port == null || options.containsValue(null)) {
     stderr.writeln(_usage);
     exit(64);
   }
@@ -39,6 +44,7 @@ Future<void> main(List<String> args) async {
   );
 
   await _prepareDevice(apk, await _packageName(apk), port);
+  if (screenshots != null) await _putStatusBarAtRest();
   // Maestro would pick the first device on its own, whichever adb serves
   final device = (await _run('adb', ['get-serialno'])).trim();
   final failedFlows = [
@@ -48,15 +54,25 @@ Future<void> main(List<String> args) async {
   await File('${out.path}/logcat.txt').writeAsString(await _run('adb', ['logcat', '-d'], quiet: true));
   await server.close(force: true);
   await log.close();
+  if (screenshots != null) await _copyScreenshots(Directory('${out.path}/maestro'), screenshots);
   exit(_report(failedFlows, answers) ? 0 : 1);
 }
 
-/// The positional arguments, and the port of --port, 8787 by default, or null when it is not a number.
-(List<String>, int?) _parseArgs(List<String> args) {
-  final portIndex = args.indexOf('--port');
-  if (portIndex < 0) return (args, 8787);
-  final port = portIndex + 1 < args.length ? int.tryParse(args[portIndex + 1]) : null;
-  return ([...args.take(portIndex), ...args.skip(portIndex + 2)], port);
+/// The positional arguments, and the value of each option, null when it has none.
+(List<String>, Map<String, String?>) _parseArgs(List<String> args) {
+  final optionIndexes = [
+    for (var i = 0; i < args.length; i++)
+      if (args[i].startsWith('--')) i,
+  ];
+  final options = {for (final i in optionIndexes) args[i]: i + 1 < args.length ? args[i + 1] : null};
+  final taken = {...optionIndexes, ...optionIndexes.map((i) => i + 1)};
+  return (
+    [
+      for (var i = 0; i < args.length; i++)
+        if (!taken.contains(i)) args[i],
+    ],
+    options,
+  );
 }
 
 /// The flow [path] names, or the flows of the folder it names, in the order Maestro would run them.
@@ -100,6 +116,22 @@ Future<void> _prepareDevice(String apk, String package, int port) async {
   ]);
   await _run('adb', ['shell', 'cmd', 'uimode', 'night', 'yes']);
   await _run('adb', ['logcat', '-c']);
+}
+
+Future<void> _putStatusBarAtRest() async {
+  for (final args in statusBarAtRest) {
+    await _run('adb', args);
+  }
+}
+
+Future<void> _copyScreenshots(Directory maestroOutput, String folder) async {
+  final screenshots = takenScreenshots(maestroOutput);
+  if (screenshots.isEmpty) _fail('The flows took no screenshot');
+  for (final MapEntry(key: path, value: file) in screenshots.entries) {
+    await File('$folder/$path').parent.create(recursive: true);
+    await file.copy('$folder/$path');
+  }
+  print('Copied ${screenshots.length} screenshot(s) to $folder');
 }
 
 Future<void> _writePreferences(String package) async {

@@ -1,0 +1,30 @@
+name: screenshots try
+on:
+  push:
+    branches: [ccr-18c7f41b-jxjz26]
+permissions:
+  contents: read
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - id: take
+        continue-on-error: true
+        uses: ./.github/actions/emulator-qa
+        with:
+          flows: .maestro/screenshots
+          screenshots: screenshots
+      - run: echo "outcome=${{ steps.take.outcome }}"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: screenshots
+          path: screenshots
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: emulator-output
+          path: emulator-output
+          include-hidden-files: true

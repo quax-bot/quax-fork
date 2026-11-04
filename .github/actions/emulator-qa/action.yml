@@ -1,0 +1,141 @@
+name: Emulator QA
+description: >
+  Builds a profile APK that talks to the mock of X, then runs Maestro flows on an Android emulator
+  with tool/mock_x/emulator_qa.dart, which records a video of each flow. The repository must be
+  checked out first. Maestro and the booted emulator are cached.
+
+inputs:
+  flows:
+    description: Folder or .yaml flow to run
+    required: true
+  output:
+    description: Folder the videos, screenshots and logs are written to
+    required: false
+    default: emulator-output
+  screenshots:
+    description: >
+      Folder the screenshots taken by the flows are copied to, with the status bar of a phone at
+      rest. Empty to take none.
+    required: false
+    default: ''
+  api-level:
+    description: Android API level of the emulator, as in sdkmanager's system-images;android-<level>
+    required: false
+    default: '36'
+  maestro-version:
+    description: Version of the Maestro CLI
+    required: false
+    default: 2.10.0
+
+runs:
+  using: composite
+  steps:
+    - name: Install and set up Java
+      uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      with:
+        distribution: 'zulu'
+        java-version: '25.x'
+        cache: gradle
+
+    - name: Install and set up Flutter
+      uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+      with:
+        flutter-version-file: .fvmrc
+        cache: true
+
+    - name: Generate icons
+      uses: ./.github/actions/generate-icons
+
+    # A profile build, as smooth as a release one
+    - name: Build a profile APK that talks to the mock of X
+      shell: bash
+      run: |
+        flutter config --no-analytics
+        flutter pub get
+        dart run dart_pubspec_licenses:generate
+        dart run intl_utils:generate
+        dart run flutter_iconpicker:generate_packs --packs material
+        flutter build apk --profile --no-tree-shake-icons --target-platform android-x64 \
+          --dart-define=QUAX_MOCK_X=http://localhost:8787
+
+    - name: Install Maestro
+      id: maestro
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+      with:
+        path: ~/maestro-cli
+        key: maestro-${{ inputs.maestro-version }}
+
+    - name: Download Maestro
+      if: steps.maestro.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        MAESTRO_VERSION: ${{ inputs.maestro-version }}
+      run: |
+        curl -fsSL -o "$RUNNER_TEMP/maestro.zip" \
+          "https://github.com/mobile-dev-inc/maestro/releases/download/cli-$MAESTRO_VERSION/maestro.zip"
+        unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
+        mv "$RUNNER_TEMP/maestro" ~/maestro-cli
+
+    - name: Put Maestro on the path
+      shell: bash
+      run: |
+        echo "$HOME/maestro-cli/bin" >> "$GITHUB_PATH"
+        echo "MAESTRO_CLI_NO_ANALYTICS=true" >> "$GITHUB_ENV"
+
+    # Cuts the still start of the videos
+    - name: Install ffmpeg
+      shell: bash
+      run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg
+
+    - name: Enable KVM
+      shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    # The emulator runner installs the latest emulator, which may not load a snapshot made by an older one
+    - name: Install the latest emulator
+      shell: bash
+      run: |
+        "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install emulator > /dev/null
+        version=$("$ANDROID_HOME/emulator/emulator" -version | head -1 | grep -o '[0-9.]*' | head -1)
+        echo "EMULATOR_VERSION=$version" >> "$GITHUB_ENV"
+
+    - name: Restore the emulator snapshot
+      id: avd
+      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: avd-${{ inputs.api-level }}-google_apis-x86_64-pixel_6-${{ env.EMULATOR_VERSION }}
+
+    - name: Create the emulator snapshot
+      if: steps.avd.outputs.cache-hit != 'true'
+      uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+      with:
+        api-level: ${{ inputs.api-level }}
+        target: google_apis
+        arch: x86_64
+        profile: pixel_6
+        force-avd-creation: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: echo "Created the emulator snapshot"
+
+    - name: Run the flows
+      uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+      env:
+        FLOWS: ${{ inputs.flows }}
+        OUTPUT: ${{ inputs.output }}
+        SCREENSHOTS: ${{ inputs.screenshots && format('--screenshots {0}', inputs.screenshots) || '' }}
+      with:
+        api-level: ${{ inputs.api-level }}
+        target: google_apis
+        arch: x86_64
+        profile: pixel_6
+        force-avd-creation: false
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: dart run tool/mock_x/emulator_qa.dart build/app/outputs/flutter-apk/app-profile.apk "$FLOWS" "$OUTPUT" $SCREENSHOTS
