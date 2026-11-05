@@ -331,7 +331,7 @@ class _AppearanceButton extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: colors.surface, width: 2),
               ),
-              child: Icon(Icons.palette_outlined, size: 14, color: colors.onSurfaceVariant),
+              child: Icon(Icons.edit_outlined, size: 14, color: colors.onSurfaceVariant),
             ),
           ),
         ),
