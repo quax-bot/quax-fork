@@ -143,21 +143,16 @@ class _SubscriptionSubtitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     final hiddenFromFeed = subscription is UserSubscription && !subscription.inFeed;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          children: [
-            Flexible(child: Text(subscriptionHandle(l10n, subscription), maxLines: 1, overflow: TextOverflow.ellipsis)),
-            if (hiddenFromFeed) ...[
-              const SizedBox(width: 6),
-              Icon(Icons.visibility_off_outlined, size: 16, semanticLabel: l10n.hidden_from_main_feed),
-            ],
-          ],
-        ),
+        Flexible(child: Text(subscriptionHandle(l10n, subscription), maxLines: 1, overflow: TextOverflow.ellipsis)),
+        if (hiddenFromFeed) ...[
+          const SizedBox(width: 6),
+          Icon(Icons.visibility_off_outlined, size: 16, semanticLabel: l10n.hidden_from_main_feed),
+        ],
         if (groups.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          GroupTags(groups: groups),
+          const SizedBox(width: 8),
+          Flexible(child: GroupTags(groups: groups)),
         ],
       ],
     );
@@ -174,13 +169,15 @@ class GroupTags extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Wrap(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       spacing: 4,
-      runSpacing: 4,
       children: [
         ...groups.take(_maxShownGroupTags).map((group) {
           final tone = groupTone(context, group.color);
-          return _Tag(icon: group.iconData, label: group.name, background: tone.background, foreground: tone.foreground);
+          return Flexible(
+            child: _Tag(icon: group.iconData, label: group.name, background: tone.background, foreground: tone.foreground),
+          );
         }),
         if (groups.length > _maxShownGroupTags)
           _Tag(label: '+${groups.length - _maxShownGroupTags}', background: colors.surfaceContainerHighest, foreground: colors.onSurfaceVariant),
