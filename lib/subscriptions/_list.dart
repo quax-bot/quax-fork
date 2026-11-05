@@ -82,6 +82,7 @@ class SubscriptionRow extends StatelessWidget {
       child: ListTile(
         selected: selected,
         selectedTileColor: colors.secondaryContainer.withValues(alpha: 0.6),
+        titleAlignment: ListTileTitleAlignment.top,
         leading: Semantics(
           button: true,
           selected: selected,
