@@ -173,6 +173,7 @@
   "@done": {},
   "download": "下载",
   "@download": {},
+  "download_all": "全部下载",
   "download_handling": "下载处理",
   "@download_handling": {},
   "download_handling_description": "下载应该如何工作",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "下载路径",
   "@download_path": {},
+  "downloading_all_media": "正在下载全部媒体...",
   "downloading_media": "正在下载媒体...",
   "@downloading_media": {},
   "edit_folder": "编辑文件夹",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "书签",
   "@saved": {},
+  "saved_media_count": "已保存 {saved}/{total} 个媒体文件",
   "saved_to_folder": "已保存到{name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "无法显示这条已保存的推文，因其太大导致难以加载。请将它报告给开发者。",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "您尚未保存任何推文！",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "必须至少有 2 个主屏幕页面",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

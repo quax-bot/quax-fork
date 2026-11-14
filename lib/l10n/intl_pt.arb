@@ -173,6 +173,7 @@
   "@done": {},
   "download": "Descarregar",
   "@download": {},
+  "download_all": "Descarregar tudo",
   "download_handling": "Manipulação de descargas",
   "@download_handling": {},
   "download_handling_description": "Como a descarga deve funcionar",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "Caminho da descarga",
   "@download_path": {},
+  "downloading_all_media": "Descarregando todas as mídias...",
   "downloading_media": "Descarregando mídia...",
   "@downloading_media": {},
   "edit_folder": "Editar pasta",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "Salvo",
   "@saved": {},
+  "saved_media_count": "Mídias salvas: {saved} de {total}",
   "saved_to_folder": "Guardado em {name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "Este tweet salvo não pôde ser exibido porque é muito grande para carregar. Por favor, denuncie aos programadores.",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "Ainda não salvou nenhum tweet!",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "Deve ter pelo menos 2 páginas de ecrã inicial",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

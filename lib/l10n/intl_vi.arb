@@ -173,6 +173,7 @@
   "@done": {},
   "download": "Tải xuống",
   "@download": {},
+  "download_all": "Tải xuống tất cả",
   "download_handling": "Xử lý tải xuống",
   "@download_handling": {},
   "download_handling_description": "Vị trí lưu trữ tệp tải xuống",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "Đường dẫn tải xuống",
   "@download_path": {},
+  "downloading_all_media": "Đang tải xuống tất cả đa phương tiện...",
   "downloading_media": "Đang tải xuống đa phương tiện...",
   "@downloading_media": {},
   "edit_folder": "Chỉnh sửa thư mục",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "Đã lưu",
   "@saved": {},
+  "saved_media_count": "Đã lưu {saved}/{total} đa phương tiện",
   "saved_to_folder": "Đã lưu vào {name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "Bài viết đã lưu này không thể xem, có thể nó quá lớn.",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "Bạn đã không lưu bài viết nào cả!",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "Bạn phải để 2 trang trên màn hình chính",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

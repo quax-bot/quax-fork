@@ -173,6 +173,7 @@
   "@done": {},
   "download": "Завантажити",
   "@download": {},
+  "download_all": "Завантажити все",
   "download_handling": "Обробка завантажень",
   "@download_handling": {},
   "download_handling_description": "Як повинно працювати завантаження",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "Шлях завантаження",
   "@download_path": {},
+  "downloading_all_media": "Завантаження всіх медіа...",
   "downloading_media": "Завантаження медіа...",
   "@downloading_media": {},
   "edit_folder": "Редагувати теку",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "Збережено",
   "@saved": {},
+  "saved_media_count": "Збережено медіа: {saved} з {total}",
   "saved_to_folder": "Збережено в {name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "Ця збережена публікація не може бути відображена, оскільки вона надто велика для завантаження. Будь ласка, повідомте розробників.",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "Ви ще не зберегли жодного твіту!",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "Потрібно мати щонайменше 2 сторінки головного екрана",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

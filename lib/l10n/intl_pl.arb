@@ -173,6 +173,7 @@
   "@done": {},
   "download": "Pobierz",
   "@download": {},
+  "download_all": "Pobierz wszystko",
   "download_handling": "Obsługa pobierania",
   "@download_handling": {},
   "download_handling_description": "Jak powinno działać pobieranie",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "Ścieżka pobierania",
   "@download_path": {},
+  "downloading_all_media": "Pobieranie wszystkich multimediów…",
   "downloading_media": "Pobieranie multimediów…",
   "@downloading_media": {},
   "edit_folder": "Edytuj folder",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "Zapisane",
   "@saved": {},
+  "saved_media_count": "Zapisane multimedia: {saved} z {total}",
   "saved_to_folder": "Zapisano w {name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "Ten zapisany tweet nie mógł zostać wyświetlony, ponieważ jest zbyt duży, aby go załadować. Zgłoś to programistom.",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "Nie zapisałeś(-aś) jeszcze żadnych tweetów!",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "Musisz mieć co najmniej 2 karty",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

@@ -173,6 +173,7 @@
   "@done": {},
   "download": "下載",
   "@download": {},
+  "download_all": "全部下載",
   "download_handling": "下載處理",
   "@download_handling": {},
   "download_handling_description": "下載應該如何運作",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "下載路徑",
   "@download_path": {},
+  "downloading_all_media": "正在下載全部媒體…",
   "downloading_media": "正在下載媒體…",
   "@downloading_media": {},
   "edit_folder": "編輯資料夾",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "已儲存",
   "@saved": {},
+  "saved_media_count": "已儲存 {saved}/{total} 個媒體檔案",
   "saved_to_folder": "已儲存到{name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "此已儲存的推文因過大無法載入而無法顯示。請向開發人員回報。",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "您尚未儲存任何推文！",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "您必須至少有 2 個主畫面頁面",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

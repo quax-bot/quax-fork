@@ -173,6 +173,7 @@
   "@done": {},
   "download": "Спампаваць",
   "@download": {},
+  "download_all": "Спампаваць усё",
   "download_handling": "Апрацоўка загрузкі",
   "@download_handling": {},
   "download_handling_description": "Як павінна працаваць спампоўка",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "Шлях для спампоўкі",
   "@download_path": {},
+  "downloading_all_media": "Загрузка ўсіх медыя...",
   "downloading_media": "Загрузка медыя...",
   "@downloading_media": {},
   "edit_folder": "Рэдагаваць тэчку",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "Захаванае",
   "@saved": {},
+  "saved_media_count": "Захавана медыя: {saved} з {total}",
   "saved_to_folder": "Захавана ў {name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "Захаваны твіт занадта вялікі",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "Вы яшчэ не захавалі ніводнага твіту!",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "Вы павінны ўсталяваць як мінімум дзве старонкі для галоўнага экрана",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

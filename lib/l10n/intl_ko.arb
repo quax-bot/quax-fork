@@ -173,6 +173,7 @@
   "@done": {},
   "download": "다운로드",
   "@download": {},
+  "download_all": "모두 다운로드",
   "download_handling": "다운로드 처리",
   "@download_handling": {},
   "download_handling_description": "다운로드 작동 방식",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "다운로드 경로",
   "@download_path": {},
+  "downloading_all_media": "모든 미디어 다운로드 중...",
   "downloading_media": "미디어 다운로드 중...",
   "@downloading_media": {},
   "edit_folder": "폴더 편집",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "저장됨",
   "@saved": {},
+  "saved_media_count": "미디어 {total}개 중 {saved}개를 저장했습니다",
   "saved_to_folder": "{name}에 저장됨",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "이 저장된 게시물은 너무 커서 표시할 수 없습니다. 개발자에게 신고해 주세요.",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "아무 트윗도 저장하지 않았습니다!",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "홈 화면 페이지가 최소 2개 있어야 합니다",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }

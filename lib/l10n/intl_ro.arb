@@ -173,6 +173,7 @@
   "@done": {},
   "download": "Descarcă",
   "@download": {},
+  "download_all": "Descarcă tot",
   "download_handling": "Gestionarea descărcărilor",
   "@download_handling": {},
   "download_handling_description": "Cum ar trebui să funcționeze descărcările",
@@ -185,6 +186,7 @@
   "@download_media_no_url": {},
   "download_path": "Calea de descărcare",
   "@download_path": {},
+  "downloading_all_media": "Descărcare toate fișierele media...",
   "downloading_media": "Descărcare media...",
   "@downloading_media": {},
   "edit_folder": "Editează dosarul",
@@ -615,6 +617,7 @@
   "@save_to_folder": {},
   "saved": "Salvat",
   "@saved": {},
+  "saved_media_count": "Fișiere media salvate: {saved} din {total}",
   "saved_to_folder": "Salvat în {name}",
   "@saved_to_folder": {},
   "saved_tweet_too_large": "Această postare salvată nu a putut fi afișată deoarece este prea mare pentru a fi încărcată. Raportați-o dezvoltatorilor.",
@@ -1010,5 +1013,8 @@
   "you_have_not_saved_any_tweets_yet": "Nu ați salvat încă nicio postare!",
   "@you_have_not_saved_any_tweets_yet": {},
   "you_must_have_at_least_2_home_screen_pages": "Trebuie să aveți cel puțin 2 pagini de ecran de start",
-  "@you_must_have_at_least_2_home_screen_pages": {}
+  "@you_must_have_at_least_2_home_screen_pages": {},
+  "@download_all": {},
+  "@downloading_all_media": {},
+  "@saved_media_count": {}
 }
