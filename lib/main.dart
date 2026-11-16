@@ -31,6 +31,7 @@ import 'package:quax/profile/profile.dart';
 import 'package:quax/release_notes/release_notes_model.dart';
 import 'package:quax/saved/liked_tweet_model.dart';
 import 'package:quax/saved/saved_folders_screen.dart';
+import 'package:quax/saved/saved_tab_order.dart';
 import 'package:quax/saved/saved_tweet_folder_model.dart';
 import 'package:quax/saved/saved_tweet_model.dart';
 import 'package:quax/search/search.dart';
@@ -253,6 +254,7 @@ Future<void> main() async {
     optionSavedShowUnfiledTab: true,
     optionSavedShowFavoritesTab: true,
     optionSavedTabOrder: '',
+    optionSavedDefaultTab: savedTabAll,
     optionSavedFolderHintShown: false,
     optionLikedFirstToastShown: false,
     optionUseAbsoluteTimestamp: false,

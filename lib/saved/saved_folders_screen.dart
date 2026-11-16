@@ -114,6 +114,35 @@ class _SavedFoldersScreenState extends State<SavedFoldersScreen> {
     );
   }
 
+  Widget _defaultTabRow(List<SavedTweetFolder> folders) {
+    var prefs = PrefService.of(context, listen: false);
+    var visibleTabs = visibleSavedTabs(prefs, folders);
+    if (visibleTabs.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    return ListTile(
+      contentPadding: const EdgeInsets.only(left: 24, right: 16),
+      title: Text(L10n.of(context).default_tab),
+      trailing: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 180),
+        child: DropdownButton<String>(
+          isExpanded: true,
+          value: openingSavedTab(prefs, visibleTabs),
+          items: visibleTabs
+              .map((token) => DropdownMenuItem(
+                  value: token,
+                  child: Text(savedTabLabel(L10n.of(context), token, folders), overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: (token) async {
+            await prefs.set(optionSavedDefaultTab, token);
+            if (mounted) setState(() {});
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,11 +162,18 @@ class _SavedFoldersScreenState extends State<SavedFoldersScreen> {
         onState: (context, folders) {
           var tokens = orderedSavedTabs(folders, PrefService.of(context, listen: false).get(optionSavedTabOrder));
 
-          return ReorderableListView.builder(
-            buildDefaultDragHandles: false,
-            itemCount: tokens.length,
-            onReorderItem: (oldIndex, newIndex) => _onReorder(tokens, oldIndex, newIndex),
-            itemBuilder: (context, index) => _tabRow(tokens[index], folders, index),
+          return Column(
+            children: [
+              _defaultTabRow(folders),
+              Expanded(
+                child: ReorderableListView.builder(
+                  buildDefaultDragHandles: false,
+                  itemCount: tokens.length,
+                  onReorderItem: (oldIndex, newIndex) => _onReorder(tokens, oldIndex, newIndex),
+                  itemBuilder: (context, index) => _tabRow(tokens[index], folders, index),
+                ),
+              ),
+            ],
           );
         },
       ),

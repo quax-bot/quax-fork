@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:pref/pref.dart';
+import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
+import 'package:quax/generated/l10n.dart';
 
 /// Tokens for the two built-in tabs. Folder tabs use their folder id as the token.
 /// A token is also the filter value used by the Saved screen.
@@ -36,3 +39,30 @@ List<String> orderedSavedTabs(List<SavedTweetFolder> folders, String? storedOrde
 
   return order;
 }
+
+/// The tabs the Saved screen shows, in their order.
+List<String> visibleSavedTabs(BasePrefService prefs, List<SavedTweetFolder> folders) {
+  bool shown(String option) => prefs.get<bool>(option) ?? true;
+  return orderedSavedTabs(folders, prefs.get<String>(optionSavedTabOrder))
+      .where((token) => switch (token) {
+            savedTabAll => shown(optionSavedShowAllTab),
+            // "Unfiled" only makes sense with folders, otherwise it duplicates "All"
+            savedTabUnfiled => shown(optionSavedShowUnfiledTab) && folders.isNotEmpty,
+            savedTabFavorites => shown(optionSavedShowFavoritesTab),
+            _ => true,
+          })
+      .toList();
+}
+
+/// The tab the Saved screen opens on: the default tab chosen by the user while it is shown, the first tab otherwise.
+String openingSavedTab(BasePrefService prefs, List<String> visibleTabs) {
+  final defaultTab = prefs.get<String>(optionSavedDefaultTab);
+  return visibleTabs.contains(defaultTab) ? defaultTab! : visibleTabs.firstOrNull ?? savedTabAll;
+}
+
+String savedTabLabel(L10n l10n, String token, List<SavedTweetFolder> folders) => switch (token) {
+      savedTabAll => l10n.all,
+      savedTabUnfiled => l10n.unfiled,
+      savedTabFavorites => l10n.favorites,
+      _ => folders.where((folder) => folder.id == token).firstOrNull?.name ?? token,
+    };

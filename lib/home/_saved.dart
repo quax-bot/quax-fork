@@ -33,6 +33,7 @@ class SavedScreen extends StatefulWidget {
 class _SavedScreenState extends State<SavedScreen> with AutomaticKeepAliveClientMixin<SavedScreen> {
   // Selected folder filter: savedTabAll, savedTabUnfiled, or a folder id.
   String _filter = savedTabAll;
+  bool _openedOnDefaultTab = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -42,24 +43,34 @@ class _SavedScreenState extends State<SavedScreen> with AutomaticKeepAliveClient
     super.initState();
 
     context.read<SavedTweetModel>().listSavedTweets();
-    context.read<SavedTweetFolderModel>().listFolders();
+    context.read<SavedTweetFolderModel>().listFolders().then((_) => _openOnDefaultTab());
     context.read<LikedTweetModel>().listLikedTweets();
   }
 
-  // If the selected tab is no longer reachable (folder deleted elsewhere, or its
-  // built-in tab was hidden in settings), fall back to "All".
-  void _reconcileFilter(List<SavedTweetFolder> folders, {required bool showUnfiled, required bool showFavorites}) {
-    var reachable = _filter == savedTabAll ||
-        (_filter == savedTabUnfiled && showUnfiled && folders.isNotEmpty) ||
-        (_filter == savedTabFavorites && showFavorites) ||
-        folders.any((f) => f.id == _filter);
-    if (reachable) {
+  // The default tab may be a folder, so it can only be found once the folders are loaded
+  void _openOnDefaultTab() {
+    if (!mounted) {
+      return;
+    }
+    var prefs = PrefService.of(context, listen: false);
+    var visibleTabs = visibleSavedTabs(prefs, context.read<SavedTweetFolderModel>().state);
+    setState(() {
+      _filter = openingSavedTab(prefs, visibleTabs);
+      _openedOnDefaultTab = true;
+    });
+  }
+
+  // If the selected tab is no longer shown (folder deleted elsewhere, or its tab hidden
+  // in settings), fall back to the tab the screen opens on.
+  void _reconcileFilter(BasePrefService prefs, List<String> visibleTabs) {
+    var opening = openingSavedTab(prefs, visibleTabs);
+    if (!_openedOnDefaultTab || visibleTabs.contains(_filter) || _filter == opening) {
       return;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        setState(() => _filter = savedTabAll);
+        setState(() => _filter = opening);
       }
     });
   }
@@ -115,45 +126,28 @@ class _SavedScreenState extends State<SavedScreen> with AutomaticKeepAliveClient
 
   Widget _buildFolderStrip() {
     var prefs = PrefService.of(context, listen: false);
-    var showAll = prefs.get<bool>(optionSavedShowAllTab) ?? true;
-    var showUnfiled = prefs.get<bool>(optionSavedShowUnfiledTab) ?? true;
-    var showFavorites = prefs.get<bool>(optionSavedShowFavoritesTab) ?? true;
-    var storedOrder = prefs.get<String>(optionSavedTabOrder);
 
     return ScopedBuilder<SavedTweetFolderModel, List<SavedTweetFolder>>(
       store: context.read<SavedTweetFolderModel>(),
       onState: (context, folders) {
+        var visibleTabs = visibleSavedTabs(prefs, folders);
         // Reconcile before the empty check, otherwise deleting the last folder would
         // leave `_filter` stranded on a now-deleted id (the strip returns early).
-        _reconcileFilter(folders, showUnfiled: showUnfiled, showFavorites: showFavorites);
+        _reconcileFilter(prefs, visibleTabs);
 
         // With no folders, only show the strip when the Favorites tab is available to
         // switch to — otherwise there is nothing to switch between (just "All").
-        if (folders.isEmpty && !showFavorites) {
+        if (folders.isEmpty && !(prefs.get<bool>(optionSavedShowFavoritesTab) ?? true)) {
           return const SizedBox.shrink();
-        }
-
-        var chips = <Widget>[];
-        for (var token in orderedSavedTabs(folders, storedOrder)) {
-          if (token == savedTabAll) {
-            if (showAll) chips.add(_folderChip(label: L10n.of(context).all, value: savedTabAll));
-          } else if (token == savedTabUnfiled) {
-            // "Unfiled" only makes sense with folders — otherwise it duplicates "All".
-            if (showUnfiled && folders.isNotEmpty) {
-              chips.add(_folderChip(label: L10n.of(context).unfiled, value: savedTabUnfiled));
-            }
-          } else if (token == savedTabFavorites) {
-            if (showFavorites) chips.add(_folderChip(label: L10n.of(context).favorites, value: savedTabFavorites));
-          } else {
-            var matches = folders.where((f) => f.id == token);
-            if (matches.isNotEmpty) chips.add(_folderChip(label: matches.first.name, value: token));
-          }
         }
 
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(children: chips),
+          child: Row(
+              children: visibleTabs
+                  .map((token) => _folderChip(label: savedTabLabel(L10n.of(context), token, folders), value: token))
+                  .toList()),
         );
       },
     );

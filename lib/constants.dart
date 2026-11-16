@@ -84,6 +84,7 @@ const optionSavedShowAllTab = 'saved.show_all_tab';
 const optionSavedShowUnfiledTab = 'saved.show_unfiled_tab';
 const optionSavedShowFavoritesTab = 'saved.show_favorites_tab';
 const optionSavedTabOrder = 'saved.tab_order';
+const optionSavedDefaultTab = 'saved.default_tab';
 const optionSavedFolderHintShown = 'saved.folder_hint_shown';
 const optionLikedFirstToastShown = 'saved.liked_first_toast_shown';
 
