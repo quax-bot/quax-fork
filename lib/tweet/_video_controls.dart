@@ -830,18 +830,19 @@ Future<T?> showPlayerSheet<T>(
   );
 }
 
-const _kSpeeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+const videoPlaybackSpeeds = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0];
 
 Future<void> _openSpeedSheet(BuildContext context, BetterPlayerController controller) async {
   final current = _valueOf(controller).speed;
   final chosen = await showPlayerSheet<double>(
     context,
     controller,
-    (_) => _SpeedSheet(speeds: _kSpeeds, selected: current),
+    (_) => _SpeedSheet(speeds: videoPlaybackSpeeds, selected: current),
     isScrollControlled: true,
   );
   if (chosen != null) {
-    await controller.setSpeed(chosen);
+    // BetterPlayerController.setSpeed refuses speeds above 2x, which ExoPlayer plays fine
+    await controller.videoPlayerController?.setSpeed(chosen);
   }
 }
 
