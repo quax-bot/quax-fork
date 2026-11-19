@@ -15,8 +15,10 @@ import 'package:quax/saved/liked_tweet_model.dart';
 import 'package:quax/saved/saved_tab_order.dart';
 import 'package:quax/saved/saved_tweet_folder_model.dart';
 import 'package:quax/saved/saved_tweet_model.dart';
+import 'package:quax/saved/saved_tweet_order.dart';
 import 'package:quax/tweet/tweet.dart';
 import 'package:quax/ui/errors.dart';
+import 'package:quax/ui/sort_controls.dart';
 import 'package:pref/pref.dart';
 import 'package:provider/provider.dart';
 
@@ -127,10 +129,10 @@ class _SavedScreenState extends State<SavedScreen> with AutomaticKeepAliveClient
         // leave `_filter` stranded on a now-deleted id (the strip returns early).
         _reconcileFilter(folders, showUnfiled: showUnfiled, showFavorites: showFavorites);
 
-        // With no folders, only show the strip when the Favorites tab is available to
+        // With no folders, only show the chips when the Favorites tab is available to
         // switch to — otherwise there is nothing to switch between (just "All").
         if (folders.isEmpty && !showFavorites) {
-          return const SizedBox.shrink();
+          return Align(alignment: Alignment.centerRight, child: _sortControls());
         }
 
         var chips = <Widget>[];
@@ -150,12 +152,35 @@ class _SavedScreenState extends State<SavedScreen> with AutomaticKeepAliveClient
           }
         }
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(children: chips),
+        return Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(children: chips),
+              ),
+            ),
+            if (_filter != savedTabFavorites) _sortControls(),
+          ],
         );
       },
+    );
+  }
+
+  Widget _sortControls() {
+    var store = context.read<SavedTweetOrderStore>();
+    return ScopedBuilder<SavedTweetOrderStore, SavedTweetOrder>(
+      store: store,
+      onState: (context, order) => SortControls(
+        label: switch (order.sort) {
+          SavedTweetSort.savedAt => L10n.of(context).date_saved,
+          SavedTweetSort.postedAt => L10n.of(context).date_posted,
+        },
+        ascending: order.ascending,
+        onNextSort: store.showNextSort,
+        onReverse: store.reverseOrder,
+      ),
     );
   }
 
@@ -255,18 +280,21 @@ class _SavedScreenState extends State<SavedScreen> with AutomaticKeepAliveClient
         onRetry: () => model.listSavedTweets(),
       ),
       onLoading: (_) => const Center(child: CircularProgressIndicator()),
-      onState: (_, data) {
-        var filtered = _applyFilter(data);
+      onState: (_, data) => ScopedBuilder<SavedTweetOrderStore, SavedTweetOrder>(
+        store: context.read<SavedTweetOrderStore>(),
+        onState: (_, order) {
+          var filtered = order.apply(_applyFilter(data));
 
-        return RefreshIndicator(
-          onRefresh: _refresh,
-          child: filtered.isEmpty
-              ? _buildEmptyState()
-              : _buildList(
-                  itemCount: filtered.length,
-                  tileAt: (i) => SavedTweetTile(id: filtered[i].id, content: filtered[i].content)),
-        );
-      },
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: filtered.isEmpty
+                ? _buildEmptyState()
+                : _buildList(
+                    itemCount: filtered.length,
+                    tileAt: (i) => SavedTweetTile(id: filtered[i].id, content: filtered[i].content)),
+          );
+        },
+      ),
     );
   }
 

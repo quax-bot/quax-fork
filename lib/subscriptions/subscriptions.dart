@@ -20,6 +20,7 @@ import 'package:quax/subscriptions/subscriptions_page_model.dart';
 import 'package:quax/subscriptions/users_model.dart';
 import 'package:quax/ui/back_interceptors.dart';
 import 'package:quax/ui/errors.dart';
+import 'package:quax/ui/sort_controls.dart';
 
 /// The id of the subscriptions page among the pages of the home screen.
 const subscriptionsPageId = 'subscriptions';
@@ -189,7 +190,13 @@ class _SubscriptionsBody extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: SectionTitle(L10n.of(context).followed)),
-          SortControls(order: order, onNextSort: model.showNextSort, onReverse: model.reverseOrder),
+          SortControls(
+            label: subscriptionSortLabel(L10n.of(context), order.sort),
+            ascending: order.ascending,
+            canReverse: order.sort != SubscriptionSort.custom,
+            onNextSort: model.showNextSort,
+            onReverse: model.reverseOrder,
+          ),
         ],
       ),
     );

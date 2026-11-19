@@ -129,6 +129,14 @@
   "@data_exported_to_fileName": {},
   "data_imported_successfully": "Data imported successfully",
   "@data_imported_successfully": {},
+  "date_posted": "Date Posted",
+  "@date_posted": {
+    "description": "Sort of the saved posts by the date each was posted on X"
+  },
+  "date_saved": "Date Saved",
+  "@date_saved": {
+    "description": "Sort of the saved posts by the date each was saved"
+  },
   "date_subscribed": "Date Subscribed",
   "@date_subscribed": {},
   "default_color": "Default color",

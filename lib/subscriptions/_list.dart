@@ -132,43 +132,12 @@ class _SubscriptionHandle extends StatelessWidget {
   }
 }
 
-class SortControls extends StatelessWidget {
-  final SubscriptionOrder order;
-  final VoidCallback onNextSort;
-  final VoidCallback onReverse;
-
-  const SortControls({super.key, required this.order, required this.onNextSort, required this.onReverse});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = L10n.of(context);
-    final label = switch (order.sort) {
+String subscriptionSortLabel(L10n l10n, SubscriptionSort sort) => switch (sort) {
       SubscriptionSort.name => l10n.name,
       SubscriptionSort.screenName => l10n.username,
       SubscriptionSort.createdAt => l10n.date_subscribed,
       SubscriptionSort.custom => l10n.custom_order,
     };
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (order.sort != SubscriptionSort.custom)
-          IconButton(
-            onPressed: onReverse,
-            tooltip: l10n.reverse_order,
-            icon: Icon(order.ascending ? Icons.arrow_upward : Icons.arrow_downward, size: 20),
-          ),
-        Tooltip(
-          message: l10n.sort_by,
-          child: TextButton.icon(
-            onPressed: onNextSort,
-            icon: const Icon(Icons.swap_vert, size: 18),
-            label: Text(label, semanticsLabel: l10n.sort_by_value(label)),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class EmptySubscriptions extends StatelessWidget {
   final IconData icon;

@@ -33,6 +33,7 @@ import 'package:quax/saved/liked_tweet_model.dart';
 import 'package:quax/saved/saved_folders_screen.dart';
 import 'package:quax/saved/saved_tweet_folder_model.dart';
 import 'package:quax/saved/saved_tweet_model.dart';
+import 'package:quax/saved/saved_tweet_order.dart';
 import 'package:quax/search/search.dart';
 import 'package:quax/search/search_model.dart';
 import 'package:quax/settings/_home.dart';
@@ -253,6 +254,8 @@ Future<void> main() async {
     optionSavedShowUnfiledTab: true,
     optionSavedShowFavoritesTab: true,
     optionSavedTabOrder: '',
+    optionSavedOrderByField: 'saved_at',
+    optionSavedOrderByAscending: false,
     optionSavedFolderHintShown: false,
     optionLikedFirstToastShown: false,
     optionUseAbsoluteTimestamp: false,
@@ -313,6 +316,7 @@ Future<void> main() async {
             Provider(create: (context) => subscriptionsModel),
             Provider(create: (context) => SavedTweetModel()),
             Provider(create: (context) => SavedTweetFolderModel()),
+            Provider(create: (context) => SavedTweetOrderStore(prefService)),
             Provider(create: (context) => LikedTweetModel()),
             Provider(create: (context) => SearchUsersModel()),
             Provider(create: (context) => trendLocationModel),
