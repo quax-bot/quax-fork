@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
+import 'package:logging/logging.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:quax/client/chrome.dart';
 import 'package:quax/constants.dart';
 import 'package:quax/database/entities.dart';
 import 'package:quax/client/accounts.dart';
@@ -9,6 +12,7 @@ import 'package:quax/generated/l10n.dart';
 import 'package:quax/subscriptions/_import.dart' show SubscriptionImportScreen;
 import 'package:webview_cookie_manager_plus/webview_cookie_manager_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 /// Logs in to X, then closes with the account. When [guided], another screen already explained the login and offers
 /// the next steps, so no dialog is shown.
@@ -34,7 +38,7 @@ class _TwitterLoginWebviewState extends State<TwitterLoginWebview> {
   @override
   void initState() {
     super.initState();
-    _setUpWebview();
+    unawaited(_setUpWebview());
     if (widget.guided) {
       return;
     }
@@ -57,10 +61,11 @@ class _TwitterLoginWebviewState extends State<TwitterLoginWebview> {
     });
   }
 
-  void _setUpWebview() {
+  Future<void> _setUpWebview() async {
     _webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
-    _webviewController.loadRequest(Uri.https("x.com", "i/flow/login"));
-    _webviewController.setUserAgent(userAgentHeader.toString());
+    await _webviewController.setUserAgent(chromeUserAgent);
+    // Must be set before the page loads
+    await _setChromeUserAgentMetadata();
     _webviewController.setNavigationDelegate(
       NavigationDelegate(
         // Lets "Sign in with Google" open its popup, which webview_flutter does not support
@@ -130,6 +135,24 @@ class _TwitterLoginWebviewState extends State<TwitterLoginWebview> {
         },
       ),
     );
+    _webviewController.loadRequest(Uri.https("x.com", "i/flow/login"));
+  }
+
+  // The WebView otherwise lists itself as "Android WebView" in sec-ch-ua. Logging in works without it.
+  Future<void> _setChromeUserAgentMetadata() async {
+    try {
+      // Keys read by WebViewUserAgentMetadata.kt
+      await _channel.invokeMethod<void>('setUserAgentMetadata', {
+        'webViewIdentifier': (_webviewController.platform as AndroidWebViewController).webViewIdentifier,
+        'brands': [
+          for (final brand in chromeBrands(chromeFullVersion))
+            {'name': brand.name, 'majorVersion': brand.majorVersion, 'fullVersion': brand.fullVersion},
+        ],
+        'fullVersion': chromeFullVersion,
+      });
+    } catch (error) {
+      Logger('TwitterLoginWebview').warning('Could not set the user agent metadata of the login page', error);
+    }
   }
 
   /// X's home page fills in the screen name after the URL changed, and no other URL change follows, so wait for it.

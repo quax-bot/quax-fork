@@ -64,6 +64,15 @@ class MainActivity : FlutterActivity() {
                 } else if (call.method == "enableWebViewPopups") {
                     WebViewPopups.install(this)
                     result.success(null)
+                } else if (call.method == "setUserAgentMetadata") {
+                    WebViewUserAgentMetadata.set(
+                        flutterEngine,
+                        // Dart sends small ints as Integer
+                        call.argument<Number>("webViewIdentifier")!!.toLong(),
+                        call.argument<List<Map<String, String>>>("brands")!!,
+                        call.argument<String>("fullVersion")!!,
+                    )
+                    result.success(null)
                 } else if (call.method == "getSdkInt") {
                     result.success(Build.VERSION.SDK_INT)
                 } else if (call.method == "getVideoHardware") {

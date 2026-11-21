@@ -7,6 +7,7 @@ import 'package:html/dom.dart' as html_dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 import 'package:quax/catcher/exceptions.dart';
+import 'package:quax/client/chrome.dart';
 
 import 'client_transaction_id_exception.dart';
 import 'constants.dart';
@@ -15,12 +16,11 @@ import 'interpolate.dart';
 import 'rotation.dart';
 import 'utils.dart';
 
-const _browserHeaders = {
+final _browserHeaders = {
   'Accept-Language': 'en-US,en;q=0.9',
   'Cache-Control': 'no-cache',
   'Referer': 'https://x.com',
-  'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+  ...chromeHeaders,
   'X-Twitter-Active-User': 'yes',
   'X-Twitter-Client-Language': 'en',
 };

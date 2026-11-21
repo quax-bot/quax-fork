@@ -117,6 +117,8 @@ flutter {
 
 dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
+    // Same version as the webview_flutter_android plugin, which only uses it internally
+    implementation "androidx.webkit:webkit:1.15.0"
 }
 
 ext.abiCodes = ["x86_64": 1, "armeabi-v7a": 2, "arm64-v8a": 3]
