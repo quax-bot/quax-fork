@@ -60,7 +60,7 @@ class _TwitterLoginWebviewState extends State<TwitterLoginWebview> {
   void _setUpWebview() {
     _webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
     _webviewController.loadRequest(Uri.https("x.com", "i/flow/login"));
-    // The login page fits a phone better, and the cookies it gives do not depend on the user agent.
+    // The login page fits a phone better. Its cookies are then sent with the desktop user agent.
     _webviewController.setUserAgent(mobileChromeUserAgent);
     _webviewController.setNavigationDelegate(
       NavigationDelegate(

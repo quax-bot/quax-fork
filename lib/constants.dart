@@ -91,11 +91,11 @@ const optionUserTrendsLocations = 'trends.locations';
 
 const optionNonConfirmationBiasMode = 'other.improve_non_confirmation_bias';
 
-
+const _chromeRelease = '159';
 const desktopChromeUserAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/159.0.0.0 Safari/537.36';
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$_chromeRelease.0.0.0 Safari/537.36';
 const mobileChromeUserAgent =
-    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/159.0.0.0 Mobile Safari/537.36';
+    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$_chromeRelease.0.0.0 Mobile Safari/537.36';
 
 const String bearerToken =
     "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";

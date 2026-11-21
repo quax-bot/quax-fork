@@ -128,7 +128,8 @@ Uri waybackSearchUri(String screenName, String id) =>
 
 Future<String?> _resolveShortUrl(Uri shortUrl) async {
   final request = http.Request('GET', shortUrl)
-    ..followRedirects = false;
+    ..followRedirects = false
+    ..headers['user-agent'] = desktopChromeUserAgent;
 
   final response = await request.send();
   if (response.isRedirect || response.statusCode == 301 || response.statusCode == 302) {

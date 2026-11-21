@@ -7,7 +7,7 @@ import 'package:html/dom.dart' as html_dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 import 'package:quax/catcher/exceptions.dart';
-import 'package:quax/constants.dart';
+import 'package:quax/constants.dart' show desktopChromeUserAgent;
 
 import 'client_transaction_id_exception.dart';
 import 'constants.dart';
