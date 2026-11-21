@@ -1,11 +1,11 @@
 // Set by tool/update_chrome.py at each release. To bump Chrome by hand, run it or change only this line.
 const chromeFullVersion = '157.0.8103.78';
 
-final _chromeMajorVersion = _majorOf(chromeFullVersion);
-
 // Chrome freezes everything but its major version in its user agent
-final chromeUserAgent =
-    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$_chromeMajorVersion.0.0.0 Mobile Safari/537.36';
+final chromeUserAgent = chromeUserAgentOf(chromeFullVersion);
+
+String chromeUserAgentOf(String fullVersion) =>
+    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${_majorOf(fullVersion)}.0.0.0 Mobile Safari/537.36';
 
 /// Sent with every request to X, so that all of them look like the Chrome on Android that logged in.
 final Map<String, String> chromeHeaders = Map.unmodifiable({

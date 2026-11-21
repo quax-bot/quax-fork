@@ -10,6 +10,7 @@
 //   fvm dart run tool/record/capture.dart --only 2082854732020760880
 //                                                     captures only the links containing the text,
 //                                                     and prunes only what those links used to produce
+//   fvm dart run tool/record/capture.dart --mobile   records what X sends to Chrome on an Android phone
 //
 // Chrome is started as described in chrome.dart.
 //
@@ -22,7 +23,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:puppeteer/protocol/emulation.dart' show UserAgentBrandVersion, UserAgentMetadata;
 import 'package:puppeteer/puppeteer.dart';
+
+import 'package:quax/client/chrome.dart';
 
 import 'chrome.dart';
 import 'request_check.dart';
@@ -128,9 +132,12 @@ Future<void> main(List<String> args) async {
   }
 
   final attach = args.contains('--attach');
+  final mobile = args.contains('--mobile');
+  Future<Page> asDevice(Page page) async => mobile ? await _emulatePhone(page) : page;
+
   var chrome = attach ? null : await startChrome(profile: _profileDir, port: _port);
   var browser = await _connect(attach);
-  var page = (await browser.pages).firstOrNull ?? await browser.newPage();
+  var page = await asDevice((await browser.pages).firstOrNull ?? await browser.newPage());
   await _requireLogin(page);
 
   /// Once a page stops answering, all of Chrome does, new pages included: it starts again on the same profile, so
@@ -142,7 +149,7 @@ Future<void> main(List<String> args) async {
     await chrome?.exitCode;
     chrome = await startChrome(profile: _profileDir, port: _port);
     browser = await _connect(false);
-    return (await browser.pages).firstOrNull ?? await browser.newPage();
+    return asDevice((await browser.pages).firstOrNull ?? await browser.newPage());
   }
 
   var written = 0;
@@ -151,7 +158,8 @@ Future<void> main(List<String> args) async {
     print('         ${scenario.url}');
     final watch = Stopwatch()..start();
     // A Chrome started by hand is left alone
-    final capture = await _capture(attach ? (stuck) => _replace(browser, stuck) : restart, page, scenario);
+    final capture = await _capture(
+        attach ? (stuck) async => asDevice(await _replace(browser, stuck)) : restart, page, scenario);
     written += capture.written;
     page = capture.page;
     print('         ${(watch.elapsedMilliseconds / 1000).toStringAsFixed(1)} s');
@@ -172,6 +180,29 @@ Future<void> main(List<String> args) async {
     print('\n$_failures scenario(s) still failed after $_attempts attempts: see "gave up" above.');
     exitCode = 1;
   }
+}
+
+/// Makes [page] a Chrome on an Android phone: its screen, touch, user agent and client hints, with the version of the
+/// Chrome that runs it.
+Future<Page> _emulatePhone(Page page) async {
+  await page.emulate(puppeteer.devices.pixel5);
+  final fullVersion = (await page.browser.version).split('/').last;
+  final brands = chromeBrands(fullVersion);
+  await page.devTools.emulation.setUserAgentOverride(
+    chromeUserAgentOf(fullVersion),
+    userAgentMetadata: UserAgentMetadata(
+      brands: [for (final brand in brands) UserAgentBrandVersion(brand: brand.name, version: brand.majorVersion)],
+      fullVersionList: [
+        for (final brand in brands) UserAgentBrandVersion(brand: brand.name, version: brand.fullVersion),
+      ],
+      platform: 'Android',
+      platformVersion: '14.0.0',
+      architecture: '',
+      model: 'Pixel 5',
+      mobile: true,
+    ),
+  );
+  return page;
 }
 
 String? _optionValue(List<String> args, String name) {
