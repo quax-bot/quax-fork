@@ -49,7 +49,7 @@ class TranslationAPI {
       Future<http.Response> getTranslation() async {
         final translationUri = Uri.https('api.x.com', '/2/grok/translation.json');
         return await http.post(translationUri, body: jsonEncode(formData), headers: {
-          ...await TwitterHeaders.getHeaders(translationUri, await pickAuthHeader()),
+          ...await TwitterHeaders.getHeaders(translationUri, await pickAuthHeader(), method: 'POST'),
           'Content-Type': 'text/plain;charset=UTF-8',
           'Accept-Encoding': 'gzip, deflate, br, zstd'
         });

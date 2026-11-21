@@ -19,17 +19,18 @@ class TwitterHeaders {
 
   static final _clientTransaction = SuccessCache(ClientTransaction.initialize);
 
-  static Future<Map<String, String>?> getXClientTransactionIdHeader(Uri? uri) async {
+  static Future<Map<String, String>?> getXClientTransactionIdHeader(Uri? uri, {String method = 'GET'}) async {
     if (uri == null) {
       return null;
     }
 
     final ct = await _clientTransaction();
-    return {'x-client-transaction-id': ct.generateTransactionId('GET', uri.path)};
+    return {'x-client-transaction-id': ct.generateTransactionId(method, uri.path)};
   }
 
-  static Future<Map<String, String>> getHeaders(Uri? uri, Map<dynamic, dynamic>? authHeader) async {
-    final xClientTransactionIdHeader = await getXClientTransactionIdHeader(uri);
+  static Future<Map<String, String>> getHeaders(Uri? uri, Map<dynamic, dynamic>? authHeader,
+      {String method = 'GET'}) async {
+    final xClientTransactionIdHeader = await getXClientTransactionIdHeader(uri, method: method);
     return {
       ..._baseHeaders,
       if (authHeader != null) ...Map<String, String>.from(authHeader),
