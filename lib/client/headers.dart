@@ -12,7 +12,7 @@ class TwitterHeaders {
     'pragma': 'no-cache',
     'priority': 'u=1, i',
     'referer': 'https://x.com/',
-    'user-agent': userAgentHeader['user-agent']!,
+    'user-agent': desktopChromeUserAgent,
     'x-twitter-active-user': 'yes',
     'x-twitter-client-language': 'en',
   };

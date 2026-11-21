@@ -60,7 +60,8 @@ class _TwitterLoginWebviewState extends State<TwitterLoginWebview> {
   void _setUpWebview() {
     _webviewController.setJavaScriptMode(JavaScriptMode.unrestricted);
     _webviewController.loadRequest(Uri.https("x.com", "i/flow/login"));
-    _webviewController.setUserAgent(userAgentHeader.toString());
+    // The login page fits a phone better, and the cookies it gives do not depend on the user agent.
+    _webviewController.setUserAgent(mobileChromeUserAgent);
     _webviewController.setNavigationDelegate(
       NavigationDelegate(
         // Lets "Sign in with Google" open its popup, which webview_flutter does not support

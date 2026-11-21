@@ -35,6 +35,7 @@ Future<String> getToken(Logger log) async {
   var response = await http.post(Uri.parse('https://api.x.com/1.1/guest/activate.json'), headers: {
     'Authorization':
         'Bearer AAAAAAAAAAAAAAAAAAAAAGHtAgAAAAAA%2Bx7ILXNILCqkSGIzy6faIHZ9s3Q%3DQy97w6SIrzE7lQwPJEYQBsArEE2fC25caFwRBvAGi456G09vGR',
+    'user-agent': desktopChromeUserAgent,
   });
 
   if (response.statusCode == 200) {
@@ -61,7 +62,7 @@ Future<http.Response> fetchUnauthenticated(Uri uri, {Map<String, String>? header
         'Bearer AAAAAAAAAAAAAAAAAAAAAGHtAgAAAAAA%2Bx7ILXNILCqkSGIzy6faIHZ9s3Q%3DQy97w6SIrzE7lQwPJEYQBsArEE2fC25caFwRBvAGi456G09vGR',
     'x-guest-token': await getToken(log),
     'x-twitter-active-user': 'yes',
-    'user-agent': userAgentHeader.toString()
+    'user-agent': desktopChromeUserAgent
   });
 
   var headerRateLimitReset = response.headers['x-rate-limit-reset'];
