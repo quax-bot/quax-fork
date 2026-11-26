@@ -1,8 +1,8 @@
-import 'package:flutter_localized_locales/flutter_localized_locales.dart';
 import 'package:intl/intl.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/search/search_filters.dart';
 import 'package:quax/ui/locale_fallback.dart';
+import 'package:quax/utils/language_names.dart';
 
 /// The languages X can filter on, by the code `lang:` takes.
 const searchLanguages = [
@@ -17,8 +17,6 @@ String appSearchLanguage() => switch (Intl.getCurrentLocale().split(RegExp('[-_]
       'nb' => 'no',
       final code => code,
     };
-
-String languageName(String code) => LocaleNamesLocalizationsDelegate.nativeLocaleNames[code] ?? code;
 
 String activeFilterLabel(L10n l10n, ActiveFilter filter) {
   String date(DateTime value) => DateFormat.yMMMd(formattingLocale()).format(value);

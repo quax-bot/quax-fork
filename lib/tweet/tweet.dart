@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 import 'dart:io' show Platform;
-import 'package:auto_direction/auto_direction.dart';
+import 'package:quax/ui/auto_direction.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';

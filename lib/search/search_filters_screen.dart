@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:quax/generated/l10n.dart';
 import 'package:quax/search/search_filter_fields.dart';
 import 'package:quax/search/search_filter_labels.dart';
+import 'package:quax/utils/language_names.dart';
 import 'package:quax/search/search_filters.dart';
 import 'package:quax/search/search_model.dart';
 

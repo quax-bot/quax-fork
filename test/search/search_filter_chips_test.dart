@@ -6,6 +6,7 @@ import 'package:quax/generated/l10n.dart';
 import 'package:quax/search/search_filter_chips.dart';
 import 'package:quax/search/search_filter_fields.dart';
 import 'package:quax/search/search_filter_labels.dart';
+import 'package:quax/utils/language_names.dart';
 import 'package:quax/search/search_filters.dart';
 
 import '../ui/pump_app.dart';

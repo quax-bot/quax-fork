@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_portal/flutter_portal.dart';
 import 'package:quax/client/accounts.dart';
 
 import 'package:quax/constants.dart';
@@ -459,103 +458,102 @@ class _FritterAppState extends State<FritterApp> {
           textScaler: TextScaler.linear(_textScaleFactor * systemScaleFactor),
         ),
         child: DynamicColorBuilder(builder: (lightDynamic, darkDynamic) {
-          return Portal(
-              child: MaterialApp(
-                  navigatorKey: _navigatorKey,
-                  localizationsDelegates: appLocalizationsDelegates,
-                  supportedLocales: L10n.delegate.supportedLocales,
-                  locale: _locale,
-                  title: 'QuaX',
-                  theme: ThemeData(
-                    colorScheme: _themeColor == 'accent'
-                        ? lightDynamic
-                        : ColorScheme.fromSeed(
-                            seedColor: themeColors[_themeColor]!
-                                .harmonizeWith(lightDynamic?.primary ?? Colors.transparent),
-                            brightness: Brightness.light),
-                    pageTransitionsTheme: _disableAnimations == true ? _noAnimationPageTransitionsTheme : null,
-                    fontFamilyFallback: appFontFamilyFallback,
-                    useMaterial3: true,
-                  ),
-                  darkTheme: ThemeData(
-                    colorScheme: (_trueBlack == true
-                        ? (_themeColor == 'accent'
-                                ? darkDynamic
-                                : ColorScheme.fromSeed(
-                                    seedColor: themeColors[_themeColor]!
-                                        .harmonizeWith(darkDynamic?.primary ?? Colors.transparent),
-                                    brightness: Brightness.dark))
-                            ?.copyWith(surface: Colors.black)
-                        : (_themeColor == 'accent'
+          return MaterialApp(
+              navigatorKey: _navigatorKey,
+              localizationsDelegates: appLocalizationsDelegates,
+              supportedLocales: L10n.delegate.supportedLocales,
+              locale: _locale,
+              title: 'QuaX',
+              theme: ThemeData(
+                colorScheme: _themeColor == 'accent'
+                    ? lightDynamic
+                    : ColorScheme.fromSeed(
+                        seedColor: themeColors[_themeColor]!
+                            .harmonizeWith(lightDynamic?.primary ?? Colors.transparent),
+                        brightness: Brightness.light),
+                pageTransitionsTheme: _disableAnimations == true ? _noAnimationPageTransitionsTheme : null,
+                fontFamilyFallback: appFontFamilyFallback,
+                useMaterial3: true,
+              ),
+              darkTheme: ThemeData(
+                colorScheme: (_trueBlack == true
+                    ? (_themeColor == 'accent'
                             ? darkDynamic
                             : ColorScheme.fromSeed(
                                 seedColor: themeColors[_themeColor]!
                                     .harmonizeWith(darkDynamic?.primary ?? Colors.transparent),
-                                brightness: Brightness.dark))),
-                    navigationBarTheme:
-                        (_trueBlack == true ? NavigationBarThemeData(backgroundColor: Colors.black) : null),
-                    scaffoldBackgroundColor: (_trueBlack == true ? Colors.black : null),
-                    appBarTheme: (_trueBlack == true ? AppBarThemeData(backgroundColor: Colors.black) : null),
-                    pageTransitionsTheme: _disableAnimations == true ? _noAnimationPageTransitionsTheme : null,
-                    fontFamilyFallback: appFontFamilyFallback,
-                    useMaterial3: true,
-                  ),
-                  themeMode: themeMode,
-                  initialRoute: '/',
-                  routes: {
-                    routeHome: (context) => PrefService.of(context, listen: false).get<bool>(optionOnboardingDone)!
-                        ? const DefaultPage()
-                        : const OnboardingWizard(),
-                    routeCommunity: (context) => const CommunityScreen(),
-                    routeList: (context) => const XListScreen(),
-                    routeSpace: (context) => const SpaceScreen(),
-                    routeGroup: (context) => const GroupScreen(),
-                    routeProfile: (context) => const ProfileScreen(),
-                    routeSearch: (context) => const ResultsScreen(),
-                    routeSavedFolders: (context) => const SavedFoldersScreen(),
-                    routeSettings: (context) => const SettingsScreen(),
-                    routeSettingsExport: (context) => const SettingsExportScreen(),
-                    routeSettingsHome: (context) => const SettingsHomeFragment(),
-                    routeStatus: (context) => const StatusScreen(),
-                  },
-                  builder: (context, child) {
-                    if (widget.onboarding) {
-                      _updateDialogShown = _discordDialogShown = true;
-                    }
+                                brightness: Brightness.dark))
+                        ?.copyWith(surface: Colors.black)
+                    : (_themeColor == 'accent'
+                        ? darkDynamic
+                        : ColorScheme.fromSeed(
+                            seedColor: themeColors[_themeColor]!
+                                .harmonizeWith(darkDynamic?.primary ?? Colors.transparent),
+                            brightness: Brightness.dark))),
+                navigationBarTheme:
+                    (_trueBlack == true ? NavigationBarThemeData(backgroundColor: Colors.black) : null),
+                scaffoldBackgroundColor: (_trueBlack == true ? Colors.black : null),
+                appBarTheme: (_trueBlack == true ? AppBarThemeData(backgroundColor: Colors.black) : null),
+                pageTransitionsTheme: _disableAnimations == true ? _noAnimationPageTransitionsTheme : null,
+                fontFamilyFallback: appFontFamilyFallback,
+                useMaterial3: true,
+              ),
+              themeMode: themeMode,
+              initialRoute: '/',
+              routes: {
+                routeHome: (context) => PrefService.of(context, listen: false).get<bool>(optionOnboardingDone)!
+                    ? const DefaultPage()
+                    : const OnboardingWizard(),
+                routeCommunity: (context) => const CommunityScreen(),
+                routeList: (context) => const XListScreen(),
+                routeSpace: (context) => const SpaceScreen(),
+                routeGroup: (context) => const GroupScreen(),
+                routeProfile: (context) => const ProfileScreen(),
+                routeSearch: (context) => const ResultsScreen(),
+                routeSavedFolders: (context) => const SavedFoldersScreen(),
+                routeSettings: (context) => const SettingsScreen(),
+                routeSettingsExport: (context) => const SettingsExportScreen(),
+                routeSettingsHome: (context) => const SettingsHomeFragment(),
+                routeStatus: (context) => const StatusScreen(),
+              },
+              builder: (context, child) {
+                if (widget.onboarding) {
+                  _updateDialogShown = _discordDialogShown = true;
+                }
 
-                    if (_checkUpdates && !_updateDialogShown) {
-                      _updateDialogShown = true;
-                      // Use navigatorKey's context for showDialog
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        checkForUpdates(_navigatorKey.currentContext!);
-                      });
-                    }
+                if (_checkUpdates && !_updateDialogShown) {
+                  _updateDialogShown = true;
+                  // Use navigatorKey's context for showDialog
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    checkForUpdates(_navigatorKey.currentContext!);
+                  });
+                }
 
-                    if (!_discordDialogShown) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _discordDialogShown = true;
-                        checkForDiscord(_navigatorKey.currentContext!);
-                      });
-                    }
+                if (!_discordDialogShown) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _discordDialogShown = true;
+                    checkForDiscord(_navigatorKey.currentContext!);
+                  });
+                }
 
-                    // Replace the default red screen of death with a slightly friendlier one
-                    ErrorWidget.builder = (FlutterErrorDetails details) => FullPageErrorWidget(
-                          error: details.exception,
-                          stackTrace: details.stack,
-                          prefix: (l10n) => l10n.something_broke_in_fritter,
-                        );
-
-                    // ignore: deprecated_member_use
-                    return MaterialUiCompatibilityBridge(
-                      child: SecureContentScope(
-                        enabled: _isSecure,
-                        // FLAG_SECURE already hides Recents; this cover would black out the app behind dialogs.
-                        protectInAppSwitcher: false,
-                        child: child ?? Container(),
-                      ),
+                // Replace the default red screen of death with a slightly friendlier one
+                ErrorWidget.builder = (FlutterErrorDetails details) => FullPageErrorWidget(
+                      error: details.exception,
+                      stackTrace: details.stack,
+                      prefix: (l10n) => l10n.something_broke_in_fritter,
                     );
-                  },
-                ));
+
+                // ignore: deprecated_member_use
+                return MaterialUiCompatibilityBridge(
+                  child: SecureContentScope(
+                    enabled: _isSecure,
+                    // FLAG_SECURE already hides Recents; this cover would black out the app behind dialogs.
+                    protectInAppSwitcher: false,
+                    child: child ?? Container(),
+                  ),
+                );
+              },
+            );
         }));
   }
 }
